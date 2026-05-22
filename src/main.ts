@@ -1,3 +1,4 @@
+import './instrument';
 import 'dotenv/config';
 import 'reflect-metadata';
 import helmet from 'helmet';
