@@ -11,4 +11,9 @@ export class HealthController {
     if (error) return { status: 'degraded', detail: error.message };
     return { status: 'ok' };
   }
+
+  @Get('debug-sentry')
+  debugSentry() {
+    throw new Error('Sentry test error — laschubys-api');
+  }
 }
