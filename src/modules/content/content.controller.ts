@@ -1,5 +1,9 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Controller, Get, Header, Param, Query, Res } from '@nestjs/common';
+import { Response } from 'express';
 import { SupabaseService } from '../supabase/supabase.service';
+
+const SITE_URL = 'https://laschubys.com';
+const STATIC_ROUTES = ['', 'tienda', 'blog', 'about', 'servicios', 'contact'];
 
 type DbBlogPost = {
   id: string;
@@ -79,6 +83,42 @@ export class ContentController {
       ...this.toBlogPostView(post),
       comments: ((comments || []) as DbComment[]).map((comment) => this.toCommentView(comment)),
     };
+  }
+
+  @Get('sitemap.xml')
+  @Header('Content-Type', 'application/xml; charset=utf-8')
+  @Header('Cache-Control', 'public, max-age=3600')
+  async getSitemap(@Res() res: Response) {
+    const [{ data: posts }, { data: products }] = await Promise.all([
+      this.supabase.anon.from('blog_posts').select('slug, published_at').order('published_at', { ascending: false }),
+      this.supabase.anon.from('products').select('id, created_at').eq('active', true),
+    ]);
+
+    const staticUrls = STATIC_ROUTES.map((route) => {
+      const loc = route ? `${SITE_URL}/${route}` : SITE_URL;
+      return `  <url><loc>${loc}</loc><changefreq>weekly</changefreq><priority>${route === '' ? '1.0' : '0.8'}</priority></url>`;
+    });
+
+    const postUrls = ((posts || []) as { slug: string; published_at: string | null }[]).map((p) => {
+      const lastmod = p.published_at ? `<lastmod>${p.published_at.slice(0, 10)}</lastmod>` : '';
+      return `  <url><loc>${SITE_URL}/blog/${p.slug}</loc>${lastmod}<changefreq>monthly</changefreq><priority>0.7</priority></url>`;
+    });
+
+    const productUrls = ((products || []) as { id: string; created_at?: string }[]).map((p) => {
+      const lastmod = p.created_at ? `<lastmod>${p.created_at.slice(0, 10)}</lastmod>` : '';
+      return `  <url><loc>${SITE_URL}/tienda/${p.id}</loc>${lastmod}<changefreq>weekly</changefreq><priority>0.6</priority></url>`;
+    });
+
+    const xml = [
+      '<?xml version="1.0" encoding="UTF-8"?>',
+      '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+      ...staticUrls,
+      ...postUrls,
+      ...productUrls,
+      '</urlset>',
+    ].join('\n');
+
+    res.send(xml);
   }
 
   @Get('products')
