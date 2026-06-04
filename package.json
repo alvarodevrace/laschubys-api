@@ -7,7 +7,7 @@
     "start": "node dist/main",
     "start:dev": "nest start --watch",
     "typecheck": "npx tsc --noEmit",
-    "prepare": "husky"
+    "prepare": "[ \"$NODE_ENV\" = \"production\" ] || [ \"$CI\" = \"true\" ] || husky"
   },
   "dependencies": {
     "@nestjs/cache-manager": "^3.1.2",
