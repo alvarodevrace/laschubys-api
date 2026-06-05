@@ -38,6 +38,7 @@
     "typescript": "^5.7.0"
   },
   "lint-staged": {
+    "src/**/*.{ts,json,md}": "prettier --write",
     "*.{ts,json,md}": "prettier --write"
   }
 }
