@@ -35,6 +35,6 @@ jobs:
     steps:
       - name: Trigger Coolify deploy — laschubys-api
         run: |
-          curl -sf -X POST \
-            -H "Content-Type: application/json" \
-            "${{ secrets.COOLIFY_WEBHOOK_LCH_API }}"
+          curl -sf -X GET \
+            -H "Authorization: Bearer ${{ secrets.COOLIFY_API_TOKEN }}" \
+            "https://coolify.alvarodevrace.tech/api/v1/deploy?uuid=${{ secrets.COOLIFY_UUID }}&force=false"
