@@ -1,0 +1,5 @@
+creation_rules:
+  - path_regex: \.enc\..*
+    age: age19kgpxyhgn8c0tv28lvqe0zws5k0pwhwnp79vsyy0tl2f0hjp0fps734wv6
+  - path_regex: .*\.enc\.env.*
+    age: age19kgpxyhgn8c0tv28lvqe0zws5k0pwhwnp79vsyy0tl2f0hjp0fps734wv6
