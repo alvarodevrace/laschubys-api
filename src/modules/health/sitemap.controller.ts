@@ -18,8 +18,9 @@ export class SitemapController {
       { loc: 'https://laschubys.com/', priority: '1.0' },
       { loc: 'https://laschubys.com/blog', priority: '0.8' },
       { loc: 'https://laschubys.com/tienda', priority: '0.8' },
-      { loc: 'https://laschubys.com/nosotras', priority: '0.6' },
-      { loc: 'https://laschubys.com/contacto', priority: '0.6' },
+      { loc: 'https://laschubys.com/about', priority: '0.6' },
+      { loc: 'https://laschubys.com/servicios', priority: '0.6' },
+      { loc: 'https://laschubys.com/contact', priority: '0.6' },
     ];
 
     try {
