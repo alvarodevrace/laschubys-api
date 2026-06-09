@@ -3,6 +3,7 @@ FROM node:22-slim AS base
 WORKDIR /app
 
 FROM base AS deps
+ENV NODE_ENV=development
 COPY package.json package-lock.json ./
 RUN npm ci --ignore-scripts
 
