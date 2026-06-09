@@ -9,7 +9,7 @@ RUN npm ci --ignore-scripts
 FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN npm run build
+RUN npx nest build
 
 FROM node:22-slim AS runner
 WORKDIR /app
