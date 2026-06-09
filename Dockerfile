@@ -1,3 +1,4 @@
+# Build timestamp: 2026-06-09 — force rebuild after sitemap fix
 FROM node:22-slim AS base
 WORKDIR /app
 
