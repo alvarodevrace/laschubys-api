@@ -37,4 +37,4 @@ jobs:
         run: |
           curl -sf -X GET \
             -H "Authorization: Bearer ${{ secrets.COOLIFY_API_TOKEN }}" \
-            "https://coolify.alvarodevrace.tech/api/v1/deploy?uuid=${{ secrets.COOLIFY_UUID }}&force=false"
+            "https://coolify.alvarodevrace.tech/api/v1/deploy?uuid=${{ secrets.COOLIFY_UUID }}&force=true"
