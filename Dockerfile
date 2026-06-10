@@ -1,16 +1,16 @@
 # Build timestamp: 2026-06-09 — force rebuild after sitemap fix
-FROM node:22-slim AS base
+FROM oven/bun:1-slim AS base
 WORKDIR /app
 
 FROM base AS deps
 ENV NODE_ENV=development
-COPY package.json package-lock.json ./
-RUN npm ci --ignore-scripts
+COPY package.json bun.lockb* ./
+RUN bun install --frozen-lockfile
 
 FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN ./node_modules/.bin/nest build
+RUN bun run build
 
 FROM node:22-slim AS runner
 WORKDIR /app
