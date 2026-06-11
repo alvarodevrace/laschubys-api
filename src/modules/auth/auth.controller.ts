@@ -1,10 +1,14 @@
 import { Controller, Get, Query, Req, Res } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { AuthSessionService } from './auth-session.service';
+import { CsrfService } from '../../shared/csrf/csrf.service';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authSessions: AuthSessionService) {}
+  constructor(
+    private readonly authSessions: AuthSessionService,
+    private readonly csrf: CsrfService,
+  ) {}
 
   @Get('me')
   async me(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
@@ -12,12 +16,22 @@ export class AuthController {
     return { user };
   }
 
+  @Get('csrf')
+  getCsrf(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    let token = this.csrf.getCsrfTokenFromCookie(req);
+    if (!token) {
+      token = this.csrf.generateToken();
+      this.csrf.setCsrfCookie(res, token);
+    }
+    return { token };
+  }
+
   @Get('google')
   async google(
     @Req() req: Request,
     @Res() res: Response,
     @Query('next') next?: string,
-    @Query('origin') origin?: string
+    @Query('origin') origin?: string,
   ) {
     const authUrl = await this.authSessions.getGoogleAuthUrl(req, res, next, origin);
     return res.redirect(authUrl);
@@ -29,12 +43,14 @@ export class AuthController {
     @Res() res: Response,
     @Query('code') code?: string,
     @Query('next') next?: string,
-    @Query('origin') origin?: string
+    @Query('origin') origin?: string,
   ) {
     const redirectTarget = this.authSessions.resolveRedirectTarget(origin, next);
 
     if (!code) {
-      return res.redirect(`${redirectTarget.startsWith('http') ? new URL('/auth/login', redirectTarget).toString() : '/auth/login'}?error=oauth`);
+      return res.redirect(
+        `${redirectTarget.startsWith('http') ? new URL('/auth/login', redirectTarget).toString() : '/auth/login'}?error=oauth`,
+      );
     }
 
     try {

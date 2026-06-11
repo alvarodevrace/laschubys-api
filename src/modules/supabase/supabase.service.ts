@@ -3,27 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import type { WebSocketLikeConstructor } from '@supabase/realtime-js';
 import * as ws from 'ws';
 import { env } from '../../shared/config/env';
-
-type GenericTable = {
-  Row: Record<string, unknown>;
-  Insert: Record<string, unknown>;
-  Update: Record<string, unknown>;
-  Relationships: [];
-};
-
-type Database = {
-  laschubys: {
-    Tables: {
-      blog_posts: GenericTable;
-      products: GenericTable;
-      comments: GenericTable;
-      profiles: GenericTable;
-      orders: GenericTable;
-    };
-    Views: Record<string, never>;
-    Functions: Record<string, never>;
-  };
-};
+import type { Database } from '../../shared/types/supabase';
 
 @Injectable()
 export class SupabaseService {

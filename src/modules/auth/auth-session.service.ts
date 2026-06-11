@@ -130,7 +130,7 @@ export class AuthSessionService {
         user.email ||
         'Cat Mom',
       avatar: user.user_metadata?.['avatar_url'] || null,
-      role: (profile?.role as 'admin' | 'user') ?? 'user',
+      role: this.validateRole(profile?.role),
     };
   }
 
@@ -213,6 +213,10 @@ export class AuthSessionService {
     }
 
     return value;
+  }
+
+  private validateRole(role: string | null | undefined): 'admin' | 'user' {
+    return role === 'admin' ? 'admin' : 'user';
   }
 
   private parseCookies(raw = '') {
