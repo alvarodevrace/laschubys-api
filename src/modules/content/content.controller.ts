@@ -1,6 +1,8 @@
 import { Controller, Get, Header, Param, Query, Res } from '@nestjs/common';
 import { Response } from 'express';
 import { SupabaseService } from '../supabase/supabase.service';
+import { GetPostsQueryDto } from './dto/get-posts-query.dto';
+import { GetPostParamsDto } from './dto/get-post-params.dto';
 
 const SITE_URL = 'https://laschubys.com';
 const STATIC_ROUTES = ['', 'tienda', 'blog', 'about', 'servicios', 'contact'];
@@ -46,24 +48,32 @@ export class ContentController {
   constructor(private readonly supabase: SupabaseService) {}
 
   @Get('posts')
-  async getPosts(@Query('limit') limit?: string) {
-    const query = this.supabase.anon
+  async getPosts(@Query() query: GetPostsQueryDto) {
+    const supabaseQuery = this.supabase.anon
       .from('blog_posts')
-      .select('id, slug, title, excerpt, content, category, read_time, cover_image, author, published_at, created_at')
+      .select(
+        'id, slug, title, excerpt, content, category, read_time, cover_image, author, published_at, created_at',
+      )
       .order('published_at', { ascending: false });
 
-    const parsedLimit = Number(limit);
-    const { data } = Number.isFinite(parsedLimit) && parsedLimit > 0 ? await query.limit(parsedLimit) : await query;
+    const parsedLimit = Number(query.limit);
+    const { data } =
+      Number.isFinite(parsedLimit) && parsedLimit > 0
+        ? await supabaseQuery.limit(parsedLimit)
+        : await supabaseQuery;
 
     return (data || []).map((row) => this.toBlogPostView(row as DbBlogPost));
   }
 
   @Get('posts/:slug')
-  async getPost(@Param('slug') slug: string) {
+  async getPost(@Param() params: GetPostParamsDto) {
+    const { slug } = params;
     const [{ data: posts }, { data: comments }] = await Promise.all([
       this.supabase.anon
         .from('blog_posts')
-        .select('id, slug, title, excerpt, content, category, read_time, cover_image, author, published_at, created_at')
+        .select(
+          'id, slug, title, excerpt, content, category, read_time, cover_image, author, published_at, created_at',
+        )
         .eq('slug', slug)
         .limit(1),
       this.supabase.anon
@@ -90,23 +100,30 @@ export class ContentController {
   @Header('Cache-Control', 'public, max-age=3600')
   async getSitemap(@Res() res: Response) {
     const [{ data: posts }, { data: products }] = await Promise.all([
-      this.supabase.anon.from('blog_posts').select('slug, published_at').order('published_at', { ascending: false }),
+      this.supabase.anon
+        .from('blog_posts')
+        .select('slug, published_at')
+        .order('published_at', { ascending: false }),
       this.supabase.anon.from('products').select('id, created_at').eq('active', true),
     ]);
 
     const staticUrls = STATIC_ROUTES.map((route) => {
       const loc = route ? `${SITE_URL}/${route}` : SITE_URL;
-      return `  <url><loc>${loc}</loc><changefreq>weekly</changefreq><priority>${route === '' ? '1.0' : '0.8'}</priority></url>`;
+      return `  <url><loc>${this.escapeXml(loc)}</loc><changefreq>weekly</changefreq><priority>${route === '' ? '1.0' : '0.8'}</priority></url>`;
     });
 
     const postUrls = ((posts || []) as { slug: string; published_at: string | null }[]).map((p) => {
-      const lastmod = p.published_at ? `<lastmod>${p.published_at.slice(0, 10)}</lastmod>` : '';
-      return `  <url><loc>${SITE_URL}/blog/${p.slug}</loc>${lastmod}<changefreq>monthly</changefreq><priority>0.7</priority></url>`;
+      const lastmod = p.published_at
+        ? `<lastmod>${this.escapeXml(p.published_at.slice(0, 10))}</lastmod>`
+        : '';
+      return `  <url><loc>${this.escapeXml(`${SITE_URL}/blog/${p.slug}`)}</loc>${lastmod}<changefreq>monthly</changefreq><priority>0.7</priority></url>`;
     });
 
     const productUrls = ((products || []) as { id: string; created_at?: string }[]).map((p) => {
-      const lastmod = p.created_at ? `<lastmod>${p.created_at.slice(0, 10)}</lastmod>` : '';
-      return `  <url><loc>${SITE_URL}/tienda/${p.id}</loc>${lastmod}<changefreq>weekly</changefreq><priority>0.6</priority></url>`;
+      const lastmod = p.created_at
+        ? `<lastmod>${this.escapeXml(p.created_at.slice(0, 10))}</lastmod>`
+        : '';
+      return `  <url><loc>${this.escapeXml(`${SITE_URL}/tienda/${p.id}`)}</loc>${lastmod}<changefreq>weekly</changefreq><priority>0.6</priority></url>`;
     });
 
     const xml = [
@@ -125,7 +142,9 @@ export class ContentController {
   async getProducts() {
     const { data } = await this.supabase.anon
       .from('products')
-      .select('id, name, price, source, tag, copy, description, images, affiliate_url, shipping_note, active, created_at')
+      .select(
+        'id, name, price, source, tag, copy, description, images, affiliate_url, shipping_note, active, created_at',
+      )
       .eq('active', true)
       .order('created_at', { ascending: false });
 
@@ -176,8 +195,19 @@ export class ContentController {
   }
 
   private classifyProductAudience(row: Pick<DbProduct, 'name' | 'copy' | 'description' | 'tag'>) {
-    const haystack = `${row.name} ${row.copy || ''} ${row.description || ''} ${row.tag || ''}`.toLowerCase();
-    const keywords = ['taza', 'mug', 'manta', 'decor', 'humano', 'camiseta', 'hoodie', 'poster', 'cafe'];
+    const haystack =
+      `${row.name} ${row.copy || ''} ${row.description || ''} ${row.tag || ''}`.toLowerCase();
+    const keywords = [
+      'taza',
+      'mug',
+      'manta',
+      'decor',
+      'humano',
+      'camiseta',
+      'hoodie',
+      'poster',
+      'cafe',
+    ];
     return keywords.some((keyword) => haystack.includes(keyword)) ? 'michi-lovers' : 'michis';
   }
 
@@ -207,5 +237,14 @@ export class ContentController {
       hour: '2-digit',
       minute: '2-digit',
     }).format(new Date(value));
+  }
+
+  private escapeXml(str: string): string {
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&apos;');
   }
 }

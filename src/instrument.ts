@@ -1,7 +1,8 @@
 import * as Sentry from '@sentry/nestjs';
+import { env } from './shared/config/env';
 
 Sentry.init({
-  dsn: 'https://310ad1fd37eef97bc2d6719d2b3654f4@o4511020887638016.ingest.us.sentry.io/4511434504732672',
-  environment: process.env.NODE_ENV ?? 'production',
+  dsn: env.sentryDsn || '',
+  environment: env.nodeEnv,
   sendDefaultPii: false,
 });

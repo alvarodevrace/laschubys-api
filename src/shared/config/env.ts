@@ -18,4 +18,5 @@ export const env = {
   supabaseUrl: required('SUPABASE_URL'),
   supabaseServiceRoleKey: required('SUPABASE_SERVICE_ROLE_KEY'),
   supabaseAnonKey: required('SUPABASE_ANON_KEY'),
+  sentryDsn: process.env['SENTRY_DSN'] ?? '',
 };
