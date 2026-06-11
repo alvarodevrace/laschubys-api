@@ -1,5 +1,5 @@
-import './instrument.js';
 import 'dotenv/config';
+import './instrument.js';
 import 'reflect-metadata';
 import helmet from 'helmet';
 import { Logger, ValidationPipe } from '@nestjs/common';
