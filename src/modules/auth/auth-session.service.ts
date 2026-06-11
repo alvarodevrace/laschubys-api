@@ -1,6 +1,7 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { createClient, Session, User } from '@supabase/supabase-js';
 import { Request, Response } from 'express';
+import { randomBytes } from 'node:crypto';
 import { env } from '../../shared/config/env';
 import { SupabaseService } from '../supabase/supabase.service';
 
@@ -16,6 +17,8 @@ export type AuthUserView = {
 export class AuthSessionService {
   private readonly accessCookieName = 'lc_access_token';
   private readonly refreshCookieName = 'lc_refresh_token';
+  private readonly stateCookieName = 'lc_oauth_state';
+  private readonly stateCookieMaxAge = 1000 * 60 * 10; // 10 minutes
 
   constructor(private readonly supabase: SupabaseService) {}
 
@@ -45,12 +48,19 @@ export class AuthSessionService {
     callbackUrl.searchParams.set('next', this.normalizeNextPath(next));
     callbackUrl.searchParams.set('origin', frontendOrigin);
 
+    const state = this.generateState();
+    this.writeStateCookie(res, state);
+
     const client = this.createBrowserAuthClient(req, res);
     const { data, error } = await client.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: callbackUrl.toString(),
-        queryParams: { access_type: 'offline', prompt: 'consent' },
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent',
+          state,
+        },
         skipBrowserRedirect: true,
       },
     });
@@ -63,6 +73,16 @@ export class AuthSessionService {
   }
 
   async finishOAuth(req: Request, res: Response, code: string) {
+    const stateFromUrl = Array.isArray(req.query.state) ? req.query.state[0] : req.query.state;
+    const stateFromCookie = this.parseCookies(req.headers.cookie)[this.stateCookieName];
+
+    if (!stateFromUrl || !stateFromCookie || stateFromUrl !== stateFromCookie) {
+      this.clearStateCookie(res);
+      throw new UnauthorizedException('Estado OAuth inválido o ausente');
+    }
+
+    this.clearStateCookie(res);
+
     const client = this.createBrowserAuthClient(req, res);
     const { data, error } = await client.auth.exchangeCodeForSession(code);
 
@@ -195,6 +215,29 @@ export class AuthSessionService {
 
     res.clearCookie(this.accessCookieName, cookieOptions);
     res.clearCookie(this.refreshCookieName, cookieOptions);
+  }
+
+  private generateState(): string {
+    return randomBytes(32).toString('hex');
+  }
+
+  private writeStateCookie(res: Response, state: string): void {
+    res.cookie(this.stateCookieName, state, {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: env.isProduction,
+      path: '/',
+      maxAge: this.stateCookieMaxAge,
+    });
+  }
+
+  private clearStateCookie(res: Response): void {
+    res.clearCookie(this.stateCookieName, {
+      httpOnly: true,
+      sameSite: 'lax' as const,
+      secure: env.isProduction,
+      path: '/',
+    });
   }
 
   private normalizeOrigin(value: string | undefined) {

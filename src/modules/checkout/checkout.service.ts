@@ -11,13 +11,14 @@ export class CheckoutService {
     const { data, error } = await this.supabase.admin
       .from('orders')
       .insert({
-        name: dto.name,
-        phone: dto.phone,
-        email: dto.email,
-        province: dto.province,
-        address: dto.address,
+        name: dto.customer.name,
+        phone: dto.customer.phone,
+        email: dto.customer.email,
+        province: dto.customer.province,
+        address: dto.customer.address,
         notes: dto.notes || null,
         items: JSON.parse(JSON.stringify(dto.items)) as Json,
+        total: dto.total,
         status: 'pending',
       })
       .select('id')
