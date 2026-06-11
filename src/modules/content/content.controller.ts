@@ -25,11 +25,9 @@ export class ContentController {
       )
       .order('published_at', { ascending: false });
 
-    const parsedLimit = Number(query.limit);
-    const { data } =
-      Number.isFinite(parsedLimit) && parsedLimit > 0
-        ? await supabaseQuery.limit(parsedLimit)
-        : await supabaseQuery;
+    const { data } = query.limit
+      ? await supabaseQuery.limit(Math.min(query.limit, 100))
+      : await supabaseQuery;
 
     return (data || []).map((row) => this.toBlogPostView(row as BlogPostRow));
   }
