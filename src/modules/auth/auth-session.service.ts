@@ -4,7 +4,7 @@ import { Request, Response } from 'express';
 import { env } from '../../shared/config/env';
 import { SupabaseService } from '../supabase/supabase.service';
 
-type AuthUserView = {
+export type AuthUserView = {
   id: string;
   email: string;
   name: string;
@@ -34,7 +34,12 @@ export class AuthSessionService {
     return session.user;
   }
 
-  async getGoogleAuthUrl(req: Request, res: Response, next: string | undefined, origin: string | undefined) {
+  async getGoogleAuthUrl(
+    req: Request,
+    res: Response,
+    next: string | undefined,
+    origin: string | undefined,
+  ) {
     const frontendOrigin = this.normalizeOrigin(origin);
     const callbackUrl = new URL('/api/auth/callback', frontendOrigin);
     callbackUrl.searchParams.set('next', this.normalizeNextPath(next));
@@ -88,11 +93,12 @@ export class AuthSessionService {
     }
 
     const client = this.createBrowserAuthClient(req, res);
-    const response = accessToken && refreshToken
-      ? await client.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
-      : refreshToken
-        ? await client.auth.refreshSession({ refresh_token: refreshToken })
-        : { data: { session: null, user: null }, error: new Error('Sesión incompleta') };
+    const response =
+      accessToken && refreshToken
+        ? await client.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
+        : refreshToken
+          ? await client.auth.refreshSession({ refresh_token: refreshToken })
+          : { data: { session: null, user: null }, error: new Error('Sesión incompleta') };
 
     if (response.error || !response.data.session || !response.data.user) {
       if (res) {

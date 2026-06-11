@@ -1,7 +1,8 @@
-import { BadRequestException, Body, Controller, Post, Req, Res } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Post, Req, UseGuards } from '@nestjs/common';
 import { IsString, MinLength, MaxLength } from 'class-validator';
-import { Request, Response } from 'express';
-import { AuthSessionService } from '../auth/auth-session.service';
+import { Request } from 'express';
+import { AuthGuard } from '../auth/auth.guard';
+import { AuthUserView } from '../auth/auth-session.service';
 import { SupabaseService } from '../supabase/supabase.service';
 
 class AddCommentDto {
@@ -11,19 +12,13 @@ class AddCommentDto {
 
 @Controller('comments')
 export class CommentsController {
-  constructor(
-    private readonly supabase: SupabaseService,
-    private readonly authSessions: AuthSessionService
-  ) {}
+  constructor(private readonly supabase: SupabaseService) {}
 
   @Post()
-  async add(
-    @Body() dto: AddCommentDto,
-    @Req() req: Request,
-    @Res({ passthrough: true }) res: Response
-  ) {
-    const user = await this.authSessions.requireUser(req, res);
-    const authorName = user.user_metadata?.['full_name'] ?? user.user_metadata?.['name'] ?? 'Anónimo';
+  @UseGuards(AuthGuard)
+  async add(@Body() dto: AddCommentDto, @Req() req: Request) {
+    const user = (req as unknown as { user: AuthUserView }).user;
+    const authorName = user.name || 'Anónimo';
 
     const { data: comment, error: insertError } = await this.supabase.admin
       .from('comments')
@@ -37,7 +32,10 @@ export class CommentsController {
       .select('id, post_slug, user_id, author_name, body, created_at')
       .single();
 
-    if (insertError) throw new BadRequestException(insertError.message);
+    if (insertError) {
+      console.error(insertError);
+      throw new BadRequestException('No se pudo guardar el comentario');
+    }
 
     return {
       ok: true,
@@ -45,7 +43,7 @@ export class CommentsController {
         id: comment.id,
         author: comment.author_name,
         body: comment.body,
-        date: this.formatCommentDate(comment.created_at),
+        date: this.formatCommentDate(comment.created_at as string),
       },
     };
   }
