@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
 import { CreateOrderDto } from './dto/create-order.dto';
-import type { Json } from '../../shared/types/supabase';
 
 @Injectable()
 export class CheckoutService {
@@ -17,7 +16,7 @@ export class CheckoutService {
         province: dto.province,
         address: dto.address,
         notes: dto.notes || null,
-        items: dto.items as unknown as Json,
+        items: dto.items,
         status: 'pending',
       })
       .select('id')

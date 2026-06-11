@@ -19,5 +19,4 @@ export const env = {
   supabaseServiceRoleKey: required('SUPABASE_SERVICE_ROLE_KEY'),
   supabaseAnonKey: required('SUPABASE_ANON_KEY'),
   sentryDsn: process.env['SENTRY_DSN'] ?? '',
-  n8nWebhookUrl: process.env['N8N_WEBHOOK_URL'] ?? '',
 };

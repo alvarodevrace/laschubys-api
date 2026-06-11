@@ -3,14 +3,45 @@ import { Response } from 'express';
 import { SupabaseService } from '../supabase/supabase.service';
 import { GetPostsQueryDto } from './dto/get-posts-query.dto';
 import { GetPostParamsDto } from './dto/get-post-params.dto';
-import type { Database } from '../../shared/types/supabase';
 
 const SITE_URL = 'https://laschubys.com';
 const STATIC_ROUTES = ['', 'tienda', 'blog', 'about', 'servicios', 'contact'];
 
-type BlogPostRow = Database['laschubys']['Tables']['blog_posts']['Row'];
-type CommentRow = Database['laschubys']['Tables']['comments']['Row'];
-type ProductRow = Database['laschubys']['Tables']['products']['Row'];
+type DbBlogPost = {
+  id: string;
+  slug: string;
+  title: string;
+  excerpt: string | null;
+  content: string[] | null;
+  category: string | null;
+  read_time: string | null;
+  cover_image: string | null;
+  author: string;
+  published_at: string | null;
+  created_at?: string;
+};
+
+type DbComment = {
+  id: string;
+  author_name: string;
+  body: string;
+  created_at: string;
+};
+
+type DbProduct = {
+  id: string;
+  name: string;
+  price: number | string;
+  source: 'owned' | 'affiliate';
+  tag: string | null;
+  copy: string | null;
+  description: string | null;
+  images: string[] | null;
+  affiliate_url: string | null;
+  shipping_note: string | null;
+  active: boolean;
+  created_at?: string;
+};
 
 @Controller('content')
 export class ContentController {
@@ -25,11 +56,13 @@ export class ContentController {
       )
       .order('published_at', { ascending: false });
 
-    const { data } = query.limit
-      ? await supabaseQuery.limit(Math.min(query.limit, 100))
-      : await supabaseQuery;
+    const parsedLimit = Number(query.limit);
+    const { data } =
+      Number.isFinite(parsedLimit) && parsedLimit > 0
+        ? await supabaseQuery.limit(parsedLimit)
+        : await supabaseQuery;
 
-    return (data || []).map((row) => this.toBlogPostView(row as BlogPostRow));
+    return (data || []).map((row) => this.toBlogPostView(row as DbBlogPost));
   }
 
   @Get('posts/:slug')
@@ -51,14 +84,14 @@ export class ContentController {
         .order('created_at', { ascending: false }),
     ]);
 
-    const post = (posts || [])[0] as BlogPostRow | undefined;
+    const post = (posts || [])[0] as DbBlogPost | undefined;
     if (!post) {
       return null;
     }
 
     return {
       ...this.toBlogPostView(post),
-      comments: ((comments || []) as CommentRow[]).map((comment) => this.toCommentView(comment)),
+      comments: ((comments || []) as DbComment[]).map((comment) => this.toCommentView(comment)),
     };
   }
 
@@ -79,14 +112,14 @@ export class ContentController {
       return `  <url><loc>${this.escapeXml(loc)}</loc><changefreq>weekly</changefreq><priority>${route === '' ? '1.0' : '0.8'}</priority></url>`;
     });
 
-    const postUrls = ((posts || []) as Pick<BlogPostRow, 'slug' | 'published_at'>[]).map((p) => {
+    const postUrls = ((posts || []) as { slug: string; published_at: string | null }[]).map((p) => {
       const lastmod = p.published_at
         ? `<lastmod>${this.escapeXml(p.published_at.slice(0, 10))}</lastmod>`
         : '';
       return `  <url><loc>${this.escapeXml(`${SITE_URL}/blog/${p.slug}`)}</loc>${lastmod}<changefreq>monthly</changefreq><priority>0.7</priority></url>`;
     });
 
-    const productUrls = ((products || []) as Pick<ProductRow, 'id' | 'created_at'>[]).map((p) => {
+    const productUrls = ((products || []) as { id: string; created_at?: string }[]).map((p) => {
       const lastmod = p.created_at
         ? `<lastmod>${this.escapeXml(p.created_at.slice(0, 10))}</lastmod>`
         : '';
@@ -115,10 +148,10 @@ export class ContentController {
       .eq('active', true)
       .order('created_at', { ascending: false });
 
-    return ((data || []) as ProductRow[]).map((row) => this.toProductView(row));
+    return ((data || []) as DbProduct[]).map((row) => this.toProductView(row));
   }
 
-  private toBlogPostView(row: BlogPostRow) {
+  private toBlogPostView(row: DbBlogPost) {
     return {
       slug: row.slug,
       category: row.category || 'Blog',
@@ -133,7 +166,7 @@ export class ContentController {
     };
   }
 
-  private toCommentView(row: CommentRow) {
+  private toCommentView(row: DbComment) {
     return {
       id: row.id,
       author: row.author_name,
@@ -142,7 +175,7 @@ export class ContentController {
     };
   }
 
-  private toProductView(row: ProductRow) {
+  private toProductView(row: DbProduct) {
     const priceValue = Number(row.price || 0);
 
     return {
@@ -161,7 +194,7 @@ export class ContentController {
     };
   }
 
-  private classifyProductAudience(row: Pick<ProductRow, 'name' | 'copy' | 'description' | 'tag'>) {
+  private classifyProductAudience(row: Pick<DbProduct, 'name' | 'copy' | 'description' | 'tag'>) {
     const haystack =
       `${row.name} ${row.copy || ''} ${row.description || ''} ${row.tag || ''}`.toLowerCase();
     const keywords = [

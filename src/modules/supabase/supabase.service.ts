@@ -5,6 +5,27 @@ import * as ws from 'ws';
 import { env } from '../../shared/config/env';
 import type { Database } from '../../shared/types/supabase';
 
+type GenericTable = {
+  Row: Record<string, unknown>;
+  Insert: Record<string, unknown>;
+  Update: Record<string, unknown>;
+  Relationships: [];
+};
+
+type Database = {
+  laschubys: {
+    Tables: {
+      blog_posts: GenericTable;
+      products: GenericTable;
+      comments: GenericTable;
+      profiles: GenericTable;
+      orders: GenericTable;
+    };
+    Views: Record<string, never>;
+    Functions: Record<string, never>;
+  };
+};
+
 @Injectable()
 export class SupabaseService {
   readonly admin = createClient<Database, 'laschubys'>(

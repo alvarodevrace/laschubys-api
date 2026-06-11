@@ -10,8 +10,6 @@ import { CommentsModule } from './modules/comments/comments.module';
 import { HealthModule } from './modules/health/health.module';
 import { ContentModule } from './modules/content/content.module';
 import { CheckoutModule } from './modules/checkout/checkout.module';
-import { ContactModule } from './modules/contact/contact.module';
-import { CsrfModule } from './shared/csrf/csrf.module';
 
 @Module({
   imports: [
@@ -21,16 +19,13 @@ import { CsrfModule } from './shared/csrf/csrf.module';
     ThrottlerModule.forRoot([
       { name: 'short', ttl: 1000, limit: 10 },
       { name: 'medium', ttl: 60000, limit: 100 },
-      { name: 'contact', ttl: 3600000, limit: 3 },
     ]),
-    CsrfModule,
     SupabaseModule,
     AuthModule,
     CommentsModule,
     HealthModule,
     ContentModule,
     CheckoutModule,
-    ContactModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: SentryGlobalFilter },

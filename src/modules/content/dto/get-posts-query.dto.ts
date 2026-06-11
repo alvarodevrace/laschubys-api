@@ -1,11 +1,5 @@
-import { Type } from 'class-transformer';
-import { IsOptional, IsInt, Min, Max } from 'class-validator';
+import { IsOptional, IsNumberString, Max } from 'class-validator';
 
 export class GetPostsQueryDto {
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  @Max(100)
-  limit?: number;
+  @IsOptional() @IsNumberString() @Max(100) limit?: string;
 }
