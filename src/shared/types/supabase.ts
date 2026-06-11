@@ -145,8 +145,10 @@ export type Database = {
           address: string;
           notes: string | null;
           items: Json;
+          total: number;
           status: string;
           created_at: string;
+          updated_at: string;
         };
         Insert: {
           id?: string;
@@ -157,8 +159,10 @@ export type Database = {
           address: string;
           notes?: string | null;
           items: Json;
+          total?: number;
           status?: string;
           created_at?: string;
+          updated_at?: string;
         };
         Update: {
           id?: string;
@@ -169,8 +173,10 @@ export type Database = {
           address?: string;
           notes?: string | null;
           items?: Json;
+          total?: number;
           status?: string;
           created_at?: string;
+          updated_at?: string;
         };
         Relationships: [];
       };
