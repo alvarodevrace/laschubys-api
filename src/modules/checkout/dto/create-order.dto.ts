@@ -7,6 +7,7 @@ import {
   IsNumber,
   Min,
   IsNotEmpty,
+  IsDefined,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -27,6 +28,7 @@ class OrderItemDto {
 }
 
 export class CreateOrderDto {
+  @IsDefined()
   @ValidateNested()
   @Type(() => CustomerDto)
   customer!: CustomerDto;
