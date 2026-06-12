@@ -1,5 +1,5 @@
-import { IsOptional, IsNumberString, Max } from 'class-validator';
+import { IsOptional, IsNumberString } from 'class-validator';
 
 export class GetPostsQueryDto {
-  @IsOptional() @IsNumberString() @Max(100) limit?: string;
+  @IsOptional() @IsNumberString() limit?: string;
 }
