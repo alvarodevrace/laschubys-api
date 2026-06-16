@@ -3,6 +3,9 @@ import { Response } from 'express';
 import { SupabaseService } from '../supabase/supabase.service';
 import { GetPostsQueryDto } from './dto/get-posts-query.dto';
 import { GetPostParamsDto } from './dto/get-post-params.dto';
+import { MediaKitQueryDto } from './dto/media-kit-query.dto';
+import { MediaKitService } from './media-kit.service';
+import { MediaKitPdfService } from './media-kit-pdf.service';
 
 const SITE_URL = 'https://laschubys.com';
 const STATIC_ROUTES = ['', 'tienda', 'blog', 'about', 'servicios', 'contact'];
@@ -45,7 +48,11 @@ type DbProduct = {
 
 @Controller('content')
 export class ContentController {
-  constructor(private readonly supabase: SupabaseService) {}
+  constructor(
+    private readonly supabase: SupabaseService,
+    private readonly mediaKitService: MediaKitService,
+    private readonly mediaKitPdfService: MediaKitPdfService,
+  ) {}
 
   @Get('posts')
   async getPosts(@Query() query: GetPostsQueryDto) {
@@ -59,7 +66,7 @@ export class ContentController {
     const parsedLimit = Number(query.limit);
     const { data } =
       Number.isFinite(parsedLimit) && parsedLimit > 0
-        ? await supabaseQuery.limit(parsedLimit)
+        ? await supabaseQuery.limit(Math.min(parsedLimit, 100))
         : await supabaseQuery;
 
     return (data || []).map((row) => this.toBlogPostView(row as DbBlogPost));
@@ -149,6 +156,19 @@ export class ContentController {
       .order('created_at', { ascending: false });
 
     return ((data || []) as DbProduct[]).map((row) => this.toProductView(row));
+  }
+
+  @Get('media-kit')
+  async getMediaKit(@Query() query: MediaKitQueryDto) {
+    return this.mediaKitService.getPublicData(query.locale);
+  }
+
+  @Get('media-kit.pdf')
+  @Header('Content-Type', 'application/pdf')
+  @Header('Content-Disposition', 'attachment; filename="las-chubys-media-kit.pdf"')
+  async getMediaKitPdf(@Query() query: MediaKitQueryDto, @Res() res: Response) {
+    const pdf = await this.mediaKitPdfService.generatePdf(query.locale);
+    res.send(pdf);
   }
 
   private toBlogPostView(row: DbBlogPost) {
