@@ -7,6 +7,7 @@
     "start": "node dist/main",
     "start:dev": "nest start --watch",
     "typecheck": "npx tsc --noEmit",
+    "seed:shop": "bun run scripts/seed-shop-examples.ts",
     "prepare": "[ \"$NODE_ENV\" = \"production\" ] || [ \"$CI\" = \"true\" ] || husky"
   },
   "dependencies": {
@@ -33,9 +34,11 @@
     "@types/express": "^5.0.6",
     "@types/multer": "^2.1.0",
     "@types/node": "^22.0.0",
+    "@types/pg": "^8.20.0",
     "@types/ws": "^8.18.1",
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",
+    "pg": "^8.21.0",
     "prettier": "^3.8.3",
     "typescript": "^5.7.0"
   },

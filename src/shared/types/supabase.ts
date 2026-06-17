@@ -3,6 +3,30 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 export type Database = {
   laschubys: {
     Tables: {
+      categories: {
+        Row: {
+          id: string;
+          slug: string;
+          name: string;
+          sort_order: number | null;
+          active: boolean | null;
+        };
+        Insert: {
+          id?: string;
+          slug: string;
+          name: string;
+          sort_order?: number | null;
+          active?: boolean | null;
+        };
+        Update: {
+          id?: string;
+          slug?: string;
+          name?: string;
+          sort_order?: number | null;
+          active?: boolean | null;
+        };
+        Relationships: [];
+      };
       blog_posts: {
         Row: {
           id: string;
@@ -54,11 +78,16 @@ export type Database = {
           tag: string | null;
           copy: string | null;
           description: string | null;
+          details: string | null;
+          specifications: string | null;
           images: string[] | null;
           affiliate_url: string | null;
           shipping_note: string | null;
           active: boolean;
           created_at: string;
+          category_id: string | null;
+          product_type: 'physical' | 'link' | null;
+          slug: string | null;
         };
         Insert: {
           id?: string;
@@ -68,11 +97,16 @@ export type Database = {
           tag?: string | null;
           copy?: string | null;
           description?: string | null;
+          details?: string | null;
+          specifications?: string | null;
           images?: string[] | null;
           affiliate_url?: string | null;
           shipping_note?: string | null;
           active?: boolean;
           created_at?: string;
+          category_id?: string | null;
+          product_type?: 'physical' | 'link' | null;
+          slug?: string | null;
         };
         Update: {
           id?: string;
@@ -82,13 +116,26 @@ export type Database = {
           tag?: string | null;
           copy?: string | null;
           description?: string | null;
+          details?: string | null;
+          specifications?: string | null;
           images?: string[] | null;
           affiliate_url?: string | null;
           shipping_note?: string | null;
           active?: boolean;
           created_at?: string;
+          category_id?: string | null;
+          product_type?: 'physical' | 'link' | null;
+          slug?: string | null;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'products_category_id_fkey';
+            columns: ['category_id'];
+            isOneToOne: false;
+            referencedRelation: 'categories';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       comments: {
         Row: {

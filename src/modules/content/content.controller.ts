@@ -31,6 +31,14 @@ type DbComment = {
   created_at: string;
 };
 
+type DbCategory = {
+  id: string;
+  slug: string;
+  name: string;
+  sort_order: number | null;
+  active: boolean | null;
+};
+
 type DbProduct = {
   id: string;
   name: string;
@@ -39,11 +47,17 @@ type DbProduct = {
   tag: string | null;
   copy: string | null;
   description: string | null;
+  details: string | null;
+  specifications: string | null;
   images: string[] | null;
   affiliate_url: string | null;
   shipping_note: string | null;
   active: boolean;
   created_at?: string;
+  category_id: string | null;
+  product_type: 'physical' | 'link' | null;
+  slug: string | null;
+  categories?: { slug: string; name: string }[] | null;
 };
 
 @Controller('content')
@@ -102,6 +116,21 @@ export class ContentController {
     };
   }
 
+  @Get('categories')
+  async getCategories() {
+    const { data, error } = await this.supabase.anon
+      .from('categories')
+      .select('id, slug, name, sort_order, active')
+      .eq('active', true)
+      .order('sort_order', { ascending: true });
+
+    if (error) {
+      return [];
+    }
+
+    return (data || []).map((row) => this.toCategoryView(row as DbCategory));
+  }
+
   @Get('sitemap.xml')
   @Header('Content-Type', 'application/xml; charset=utf-8')
   @Header('Cache-Control', 'public, max-age=3600')
@@ -111,7 +140,7 @@ export class ContentController {
         .from('blog_posts')
         .select('slug, published_at')
         .order('published_at', { ascending: false }),
-      this.supabase.anon.from('products').select('id, created_at').eq('active', true),
+      this.supabase.anon.from('products').select('slug, created_at').eq('active', true),
     ]);
 
     const staticUrls = STATIC_ROUTES.map((route) => {
@@ -126,12 +155,14 @@ export class ContentController {
       return `  <url><loc>${this.escapeXml(`${SITE_URL}/blog/${p.slug}`)}</loc>${lastmod}<changefreq>monthly</changefreq><priority>0.7</priority></url>`;
     });
 
-    const productUrls = ((products || []) as { id: string; created_at?: string }[]).map((p) => {
-      const lastmod = p.created_at
-        ? `<lastmod>${this.escapeXml(p.created_at.slice(0, 10))}</lastmod>`
-        : '';
-      return `  <url><loc>${this.escapeXml(`${SITE_URL}/tienda/${p.id}`)}</loc>${lastmod}<changefreq>weekly</changefreq><priority>0.6</priority></url>`;
-    });
+    const productUrls = ((products || []) as { slug: string | null; created_at?: string }[])
+      .filter((p) => p.slug)
+      .map((p) => {
+        const lastmod = p.created_at
+          ? `<lastmod>${this.escapeXml(p.created_at.slice(0, 10))}</lastmod>`
+          : '';
+        return `  <url><loc>${this.escapeXml(`${SITE_URL}/tienda/${p.slug}`)}</loc>${lastmod}<changefreq>weekly</changefreq><priority>0.6</priority></url>`;
+      });
 
     const xml = [
       '<?xml version="1.0" encoding="UTF-8"?>',
@@ -146,16 +177,78 @@ export class ContentController {
   }
 
   @Get('products')
-  async getProducts() {
-    const { data } = await this.supabase.anon
+  async getProducts(
+    @Query('category') category?: string,
+    @Query('type') type?: string,
+    @Query('audience') audience?: string,
+    @Query('search') search?: string,
+  ) {
+    let query = this.supabase.anon
       .from('products')
       .select(
-        'id, name, price, source, tag, copy, description, images, affiliate_url, shipping_note, active, created_at',
+        'id, name, price, source, tag, copy, description, details, specifications, images, affiliate_url, shipping_note, active, created_at, category_id, product_type, slug, categories(slug, name)',
+      )
+      .eq('active', true);
+
+    if (category) {
+      query = query.not('category_id', 'is', null).eq('categories.slug', category);
+    }
+
+    if (type === 'physical' || type === 'link') {
+      query = query.eq('product_type', type);
+    }
+
+    if (search?.trim()) {
+      const term = `%${search.trim()}%`;
+      query = query.or(
+        `name.ilike.${term},copy.ilike.${term},description.ilike.${term},tag.ilike.${term}`,
+      );
+    }
+
+    const { data } = await query.order('created_at', { ascending: false });
+
+    let products = ((data || []) as DbProduct[]).map((row) => this.toProductView(row));
+
+    if (audience === 'michis' || audience === 'michi-lovers') {
+      products = products.filter((p) => p.audience === audience);
+    }
+
+    return products;
+  }
+
+  @Get('products/:slug')
+  async getProduct(@Param('slug') slug: string) {
+    const { data: products } = await this.supabase.anon
+      .from('products')
+      .select(
+        'id, name, price, source, tag, copy, description, details, specifications, images, affiliate_url, shipping_note, active, created_at, category_id, product_type, slug, categories(slug, name)',
+      )
+      .eq('slug', slug)
+      .eq('active', true)
+      .limit(1);
+
+    const product = (products || [])[0] as DbProduct | undefined;
+    if (!product) {
+      return null;
+    }
+
+    const { data: relatedProducts } = await this.supabase.anon
+      .from('products')
+      .select(
+        'id, name, price, source, tag, copy, description, details, specifications, images, affiliate_url, shipping_note, active, created_at, category_id, product_type, slug, categories(slug, name)',
       )
       .eq('active', true)
-      .order('created_at', { ascending: false });
+      .eq('category_id', product.category_id ?? '')
+      .neq('slug', slug)
+      .order('created_at', { ascending: false })
+      .limit(8);
 
-    return ((data || []) as DbProduct[]).map((row) => this.toProductView(row));
+    return {
+      ...this.toProductView(product),
+      relatedProducts: ((relatedProducts || []) as DbProduct[]).map((row) =>
+        this.toProductView(row),
+      ),
+    };
   }
 
   @Get('media-kit')
@@ -169,6 +262,16 @@ export class ContentController {
   async getMediaKitPdf(@Query() query: MediaKitQueryDto, @Res() res: Response) {
     const pdf = await this.mediaKitPdfService.generatePdf(query.locale);
     res.send(pdf);
+  }
+
+  private toCategoryView(row: DbCategory) {
+    return {
+      id: row.id,
+      slug: row.slug,
+      name: row.name,
+      sortOrder: row.sort_order ?? 0,
+      active: row.active ?? true,
+    };
   }
 
   private toBlogPostView(row: DbBlogPost) {
@@ -200,14 +303,20 @@ export class ContentController {
 
     return {
       id: row.id,
+      slug: row.slug || row.id,
       tag: row.tag || (row.source === 'owned' ? 'Las Chubys' : 'Amazon'),
       source: row.source,
+      productType: row.product_type || (row.source === 'owned' ? 'physical' : 'link'),
+      categoryId: row.category_id,
+      categoryName: row.categories?.[0]?.name,
       audience: this.classifyProductAudience(row),
       name: row.name,
       price: `$${priceValue.toFixed(0)}`,
       priceValue,
       copy: row.copy || '',
       description: row.description || '',
+      details: row.details || '',
+      specifications: row.specifications || '',
       images: Array.isArray(row.images) ? row.images : [],
       affiliateUrl: row.affiliate_url || undefined,
       shippingNote: row.shipping_note || '',
