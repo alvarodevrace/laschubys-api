@@ -2,6 +2,8 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { createClient, Session, User } from '@supabase/supabase-js';
 import { Request, Response } from 'express';
 import { randomBytes } from 'node:crypto';
+import type { WebSocketLikeConstructor } from '@supabase/realtime-js';
+import * as ws from 'ws';
 import { env } from '../../shared/config/env';
 import { SupabaseService } from '../supabase/supabase.service';
 
@@ -182,6 +184,7 @@ export class AuthSessionService {
           },
         },
       },
+      realtime: { transport: ws as unknown as WebSocketLikeConstructor },
       global: {
         headers: { 'X-Client-Info': 'laschubys-api/auth-session' },
       },

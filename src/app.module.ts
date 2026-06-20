@@ -11,6 +11,7 @@ import { HealthModule } from './modules/health/health.module';
 import { ContentModule } from './modules/content/content.module';
 import { CheckoutModule } from './modules/checkout/checkout.module';
 import { ContactModule } from './modules/contact/contact.module';
+import { AdminModule } from './modules/admin/admin.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { ContactModule } from './modules/contact/contact.module';
     ContentModule,
     CheckoutModule,
     ContactModule,
+    AdminModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: SentryGlobalFilter },
