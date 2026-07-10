@@ -1,5 +1,6 @@
 import { Controller, Get, Query, Req, Res } from '@nestjs/common';
 import { Request, Response } from 'express';
+import { Throttle } from '@nestjs/throttler';
 import { AuthSessionService } from './auth-session.service';
 import { CsrfService } from '../../shared/csrf/csrf.service';
 
@@ -27,6 +28,7 @@ export class AuthController {
   }
 
   @Get('google')
+  @Throttle({ auth: { limit: 5, ttl: 60000 } })
   async google(
     @Req() req: Request,
     @Res() res: Response,
@@ -38,6 +40,7 @@ export class AuthController {
   }
 
   @Get('callback')
+  @Throttle({ auth: { limit: 5, ttl: 60000 } })
   async callback(
     @Req() req: Request,
     @Res() res: Response,
