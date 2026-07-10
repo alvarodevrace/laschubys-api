@@ -1,11 +1,29 @@
-import { Controller, Get, Header, Param, Query, Res } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Header,
+  Param,
+  Body,
+  Query,
+  Res,
+  UseGuards,
+  ParseUUIDPipe,
+} from '@nestjs/common';
 import { Response } from 'express';
+import { AdminGuard } from '../auth/admin.guard';
 import { SupabaseService } from '../supabase/supabase.service';
 import { GetPostsQueryDto } from './dto/get-posts-query.dto';
 import { GetPostParamsDto } from './dto/get-post-params.dto';
 import { MediaKitQueryDto } from './dto/media-kit-query.dto';
+import { CreateSocialMetricDto } from './dto/create-social-metric.dto';
+import { UpdateSocialMetricDto } from './dto/update-social-metric.dto';
+import { GetSocialMetricsQueryDto } from './dto/get-social-metrics-query.dto';
 import { MediaKitService } from './media-kit.service';
 import { MediaKitPdfService } from './media-kit-pdf.service';
+import { SocialMetricsAdminService } from './social-metrics-admin.service';
 
 const SITE_URL = 'https://laschubys.com';
 const STATIC_ROUTES = ['', 'tienda', 'blog', 'about', 'servicios', 'contact'];
@@ -375,5 +393,48 @@ export class ContentController {
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&apos;');
+  }
+}
+
+@Controller('admin/social-metrics')
+export class AdminSocialMetricsController {
+  constructor(private readonly socialMetricsAdmin: SocialMetricsAdminService) {}
+
+  @Get()
+  async findAll(@Query() query: GetSocialMetricsQueryDto) {
+    return this.socialMetricsAdmin.getAllMetrics(query);
+  }
+
+  @Get('snapshot')
+  async snapshot() {
+    return this.socialMetricsAdmin.getLatestSnapshot();
+  }
+
+  @Get('history')
+  async history() {
+    return this.socialMetricsAdmin.getHistory();
+  }
+
+  @Get(':platform')
+  async findByPlatform(@Param('platform') platform: string) {
+    return this.socialMetricsAdmin.getMetricsByPlatform(platform);
+  }
+
+  @Post()
+  async create(@Body() dto: CreateSocialMetricDto) {
+    return this.socialMetricsAdmin.createMetric(dto);
+  }
+
+  @Patch(':id')
+  async update(
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+    @Body() dto: UpdateSocialMetricDto,
+  ) {
+    return this.socialMetricsAdmin.updateMetric(id, dto);
+  }
+
+  @Delete(':id')
+  async remove(@Param('id', new ParseUUIDPipe({ version: '4' })) id: string) {
+    return this.socialMetricsAdmin.deleteMetric(id);
   }
 }

@@ -1,4 +1,6 @@
 import { Injectable } from '@nestjs/common';
+import { SocialMetricsService } from './social-metrics.service';
+import { SupabaseService } from '../supabase/supabase.service';
 
 export interface MediaKitHeroCta {
   label: string;
@@ -96,6 +98,11 @@ export type MediaKitPublicData = Omit<MediaKitData, 'rates'>;
 
 @Injectable()
 export class MediaKitService {
+  constructor(
+    private readonly socialMetrics: SocialMetricsService,
+    private readonly supabase: SupabaseService,
+  ) {}
+
   private readonly data: MediaKitData = {
     hero: {
       title: 'Las Chubys · Media Kit',
@@ -284,12 +291,27 @@ export class MediaKitService {
     },
   };
 
-  getMediaKit(_locale?: string): MediaKitData {
-    return this.data;
+  async getMediaKit(_locale?: string): Promise<MediaKitData> {
+    const metrics = await this.resolveMetrics();
+    return { ...this.data, metrics };
   }
 
-  getPublicData(_locale?: string): MediaKitPublicData {
+  async getPublicData(_locale?: string): Promise<MediaKitPublicData> {
+    const metrics = await this.resolveMetrics();
     const { rates: _rates, ...publicData } = this.data;
-    return publicData;
+    return { ...publicData, metrics };
+  }
+
+  private async resolveMetrics(): Promise<MediaKitMetric[]> {
+    try {
+      const realMetrics = await this.socialMetrics.getMetricsForMediaKit();
+      if (realMetrics.length > 0) {
+        return realMetrics;
+      }
+    } catch (err) {
+      console.error('[MediaKitService] Error cargando métricas sociales:', err);
+    }
+
+    return this.data.metrics;
   }
 }
