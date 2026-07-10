@@ -13,6 +13,9 @@ import type { Request, Response } from 'express';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { cors: false });
 
+  // Trust reverse proxy (Cloudflare + Traefik) so req.ip reflects the client IP
+  app.getHttpAdapter().getInstance().set('trust proxy', true);
+
   app.use(
     helmet({
       contentSecurityPolicy: {
