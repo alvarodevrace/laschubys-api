@@ -35,7 +35,7 @@ jobs:
       - name: Trigger Dokploy deploy — laschubys-api
         run: |
           curl -sf -X POST \
-            "${{ secrets.DOKPLOY_URL }}/api/application.deploy" \
             -H "Content-Type: application/json" \
             -H "x-api-key: ${{ secrets.DOKPLOY_API_KEY }}" \
-            -d '{"applicationId":"${{ secrets.DOKPLOY_APP_ID }}"}'
+            -d '{"applicationId":"${{ secrets.DOKPLOY_APP_ID }}","title":"Deploy from GitHub Actions","description":"Triggered by ${{ github.sha }}"}' \
+            "${{ secrets.DOKPLOY_URL }}/api/application.deploy"
