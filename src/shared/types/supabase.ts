@@ -251,6 +251,48 @@ export type Database = {
         };
         Relationships: [];
       };
+      social_metrics: {
+        Row: {
+          id: string;
+          platform: string;
+          account_id: string;
+          metric_type: string;
+          value_numeric: number | null;
+          value_text: string | null;
+          period: string | null;
+          recorded_at: string;
+          external_id: string | null;
+          metadata: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          platform: string;
+          account_id: string;
+          metric_type: string;
+          value_numeric?: number | null;
+          value_text?: string | null;
+          period?: string | null;
+          recorded_at?: string;
+          external_id?: string | null;
+          metadata?: Json;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          platform?: string;
+          account_id?: string;
+          metric_type?: string;
+          value_numeric?: number | null;
+          value_text?: string | null;
+          period?: string | null;
+          recorded_at?: string;
+          external_id?: string | null;
+          metadata?: Json;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

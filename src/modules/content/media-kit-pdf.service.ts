@@ -9,7 +9,7 @@ export class MediaKitPdfService {
   constructor(private readonly mediaKitService: MediaKitService) {}
 
   async generatePdf(locale?: string, baseUrl = 'https://laschubys.com'): Promise<Buffer> {
-    const data = this.mediaKitService.getMediaKit(locale);
+    const data = await this.mediaKitService.getMediaKit(locale);
     const html = this.buildHtml(data, baseUrl);
 
     const form = new FormData();
