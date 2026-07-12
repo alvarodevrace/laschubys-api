@@ -4,8 +4,11 @@
   "private": true,
   "scripts": {
     "build": "nest build",
+    "build:dev": "nest build",
+    "build:prod": "NODE_ENV=production nest build",
     "start": "node dist/main",
     "start:dev": "nest start --watch",
+    "start:prod": "NODE_ENV=production node dist/main",
     "typecheck": "npx tsc --noEmit",
     "test": "jest",
     "test:watch": "jest --watch",
