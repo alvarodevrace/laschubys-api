@@ -1,7 +1,7 @@
 # AGENTS.md — Las Chubys Backend
 
 > Instrucciones de proyecto para Kimi Code operando en `LasChubys-Back`.
-> Lee siempre `KIMI.md` y `agents/KIMI-AGENTS.md` antes de este archivo.
+> Lee siempre `KIMI.md`, `agents/KIMI-AGENTS.md` y `vault/laschubys/00-Index/INDEX.md` antes de este archivo.
 
 ## Proyecto
 
@@ -56,6 +56,7 @@ rama feature (feature/LCH-N-nombre) → commits locales → build/test OK → me
 
 - Nunca push directo a `main` ni `develop`.
 - Nombres de rama: `feature/LCH-N-nombre-corto`.
+- TRIN nunca aprueba su propio PR; solo Álvaro aprueba.
 
 ## Reglas de frontera
 
