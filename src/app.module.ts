@@ -22,6 +22,7 @@ import { AdminModule } from './modules/admin/admin.module';
       { name: 'short', ttl: 1000, limit: 10 },
       { name: 'medium', ttl: 60000, limit: 100 },
       { name: 'auth', ttl: 60000, limit: 10 },
+      { name: 'checkout', ttl: 60000, limit: 5 },
     ]),
     SupabaseModule,
     AuthModule,

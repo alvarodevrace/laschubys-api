@@ -1,6 +1,8 @@
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 import { CheckoutController } from './checkout.controller';
 import { CheckoutService } from './checkout.service';
 import { CsrfGuard } from '../../shared/csrf/csrf.guard';
@@ -22,8 +24,12 @@ describe('CheckoutController (e2e)', () => {
 
   beforeEach(async () => {
     const module = await Test.createTestingModule({
+      imports: [ThrottlerModule.forRoot([{ name: 'checkout', ttl: 60000, limit: 5 }])],
       controllers: [CheckoutController],
-      providers: [{ provide: CheckoutService, useValue: mockService }],
+      providers: [
+        { provide: CheckoutService, useValue: mockService },
+        { provide: APP_GUARD, useClass: ThrottlerGuard },
+      ],
     })
       .overrideGuard(CsrfGuard)
       .useValue({ canActivate: () => true })
@@ -48,5 +54,14 @@ describe('CheckoutController (e2e)', () => {
 
   it('POST /checkout returns 400 on invalid order', () => {
     return request(app.getHttpServer()).post('/checkout').send({}).expect(400);
+  });
+
+  it('POST /checkout returns 429 after 5 requests', async () => {
+    mockService.createOrder.mockResolvedValue({ ok: true, orderId: 'o1' });
+    const server = app.getHttpServer();
+    for (let i = 0; i < 5; i++) {
+      await request(server).post('/checkout').send(validOrder).expect(201);
+    }
+    await request(server).post('/checkout').send(validOrder).expect(429);
   });
 });
