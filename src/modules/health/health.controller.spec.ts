@@ -14,19 +14,30 @@ describe('HealthController', () => {
     controller = module.get(HealthController);
   });
 
-  it('returns ok when supabase query succeeds', async () => {
-    mockSupabase.admin.from.mockReturnValue({
-      select: jest.fn().mockReturnValue({ limit: jest.fn().mockResolvedValue({ error: null }) }),
+  describe('check (liveness)', () => {
+    it('returns ok with timestamp and uptime', () => {
+      const result = controller.check();
+      expect(result.status).toBe('ok');
+      expect(result.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+      expect(typeof result.uptime).toBe('number');
     });
-    expect(await controller.check()).toEqual({ status: 'ok' });
   });
 
-  it('returns degraded when supabase query fails', async () => {
-    mockSupabase.admin.from.mockReturnValue({
-      select: jest
-        .fn()
-        .mockReturnValue({ limit: jest.fn().mockResolvedValue({ error: { message: 'fail' } }) }),
+  describe('ready (readiness)', () => {
+    it('returns ok when supabase query succeeds', async () => {
+      mockSupabase.admin.from.mockReturnValue({
+        select: jest.fn().mockReturnValue({ limit: jest.fn().mockResolvedValue({ error: null }) }),
+      });
+      expect(await controller.ready()).toEqual({ status: 'ok' });
     });
-    expect(await controller.check()).toEqual({ status: 'degraded', detail: 'fail' });
+
+    it('returns degraded when supabase query fails', async () => {
+      mockSupabase.admin.from.mockReturnValue({
+        select: jest
+          .fn()
+          .mockReturnValue({ limit: jest.fn().mockResolvedValue({ error: { message: 'fail' } }) }),
+      });
+      expect(await controller.ready()).toEqual({ status: 'degraded', detail: 'fail' });
+    });
   });
 });
