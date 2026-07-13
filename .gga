@@ -1,5 +1,0 @@
-PROVIDER="github:gpt-4o-mini"
-STRICT_MODE="true"
-RULES_FILE="AGENTS.md"
-FILE_PATTERNS="*.ts,*.json"
-EXCLUDE_PATTERNS="*.spec.ts,*.test.ts,bun.lock,package-lock.json,yarn.lock"
