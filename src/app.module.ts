@@ -35,7 +35,11 @@ import { AdminModule } from './modules/admin/admin.module';
   ],
   providers: [
     { provide: APP_FILTER, useClass: SentryGlobalFilter },
-    { provide: APP_GUARD, useClass: ThrottlerGuard },
+    // Throttle only in production; local SSR can issue many concurrent requests
+    // from the same IP and would trip the short limit.
+    ...(process.env['NODE_ENV'] === 'production'
+      ? [{ provide: APP_GUARD, useClass: ThrottlerGuard }]
+      : []),
   ],
 })
 export class AppModule {}
