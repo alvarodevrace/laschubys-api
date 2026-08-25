@@ -1,7 +1,7 @@
 # AGENTS.md — Las Chubys Backend
 
-> Instrucciones de proyecto para Kimi Code operando en `LasChubys-Back`.
-> Lee siempre `../../KIMI.md`, `../../agents/KIMI-AGENTS.md` y `../../vault/laschubys/00-Index/INDEX.md` antes de este archivo.
+> Instrucciones de proyecto para opencode (Alvaro2.0) operando en `LasChubys-Back`.
+> Lee siempre `../../AGENTS.md` (reglas absolutas del workspace), `../../vault/laschubys/00-Index/INDEX.md` y `../../vault/INFRA-GLOBAL.md` antes de este archivo.
 
 ## Proyecto
 
@@ -83,3 +83,28 @@ rama feature (feature/LCH-N-nombre) → commits locales → build/test OK
 - Decisiones técnicas: `../../vault/laschubys/20-Tech/decisions/`.
 - Especificaciones de producto: `../../vault/laschubys/30-Product/specs/`.
 - Log diario: `../../vault/laschubys/10-Log/LOG.md`.
+
+## Estándares (revisión pre-commit GGA)
+
+REJECT if:
+
+- Secrets, credenciales o tokens hardcodeados (solo refs `bitwarden:global/*` o variables de entorno)
+- Lógica de negocio en controllers (controllers delegan a services)
+- Stack traces o errores internos devueltos al cliente en producción
+- Módulo nuevo fuera de `src/modules/` (módulos por dominio)
+- Service role key de Supabase expuesta fuera del backend
+- Cambios de schema/RLS/RPC sin Protocol RX documentado
+- `any` sin justificación
+
+REQUIRE:
+
+- DTOs con `class-validator` + `class-transformer`
+- Guards que validan sesión contra Supabase en rutas protegidas
+- Manejo de errores centralizado
+- Pasar `bun run typecheck`, `bun run test` y `bun run build` antes de entregar
+- Commits en español, conventional commits
+
+PREFER:
+
+- Seguir el adapter HTTP configurado (no introducir un segundo adapter)
+- Interceptores para logging y errores transversales

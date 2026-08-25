@@ -1,1 +1,4 @@
+# Gentleman Guardian Angel — review AI de staged files (Fase 8 migración)
+gga run || exit 1
+
 npx lint-staged
