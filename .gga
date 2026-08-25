@@ -4,3 +4,6 @@ PROVIDER="opencode"
 
 # Revisar todos los archivos staged (override del config global de gentle-ai)
 FILE_PATTERNS="*"
+
+# Agente headless de opencode sin tools de escritura (evita corrupción del índice git)
+OPENCODE_AGENT="gga-reviewer"
