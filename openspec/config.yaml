@@ -1,0 +1,49 @@
+schema: spec-driven
+
+strict_tdd: true
+
+context: |
+  Project: Las Chubys API (laschubys-api) — NestJS 11 BFF, TypeScript 5.7, Bun 1.2.5, Express adapter.
+  Persistence: Supabase (Postgres 15) + Supabase Auth; class-validator/class-transformer DTOs; helmet, throttler, cache-manager, Sentry.
+  Architecture: modules by domain under src/modules/ (admin, auth, checkout, comments, contact, content, health, supabase); shared/ (config, csrf, http, types).
+  Testing: Jest 30 + ts-jest + supertest in-process HTTP tests; CI runs typecheck + test + build on PR/push to main.
+  Style: Prettier only (no ESLint); controllers delegate to services; centralized ApiExceptionFilter; branch naming feature/LCH-N-<name>.
+
+testing:
+  runner: jest
+  test_command: "bun run test"
+  coverage_command: "bun run test:cov"
+  build_command: "bun run build"
+  typecheck_command: "bun run typecheck"
+  layers:
+    unit: jest
+    integration: supertest
+    e2e: none
+
+rules:
+  proposal:
+    - Include rollback plan for risky changes
+    - Supabase schema/RLS/RPC changes require Protocol RX pre-mortem and approval
+  specs:
+    - Use Given/When/Then for scenarios
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+  design:
+    - Document architecture decisions with rationale
+    - No business logic in controllers; controllers delegate to services
+  tasks:
+    - Group by phase, use hierarchical numbering
+    - Keep tasks completable in one session
+    - Branch naming: feature/LCH-N-<short-name>
+  apply:
+    guidelines:
+      - Follow existing code patterns
+      - Supabase service role key stays backend-only
+      - Never return stack traces in production
+    tdd: true
+    test_command: "bun run test"
+  verify:
+    test_command: "bun run test"
+    build_command: "bun run build"
+    coverage_threshold: 0
+  archive:
+    - Warn before merging destructive deltas
