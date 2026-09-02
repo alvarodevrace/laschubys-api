@@ -1,5 +1,4 @@
-import { Injectable } from '@nestjs/common';
-import { SocialMetricsService } from './social-metrics.service';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
 
 export interface MediaKitHeroCta {
@@ -96,14 +95,122 @@ export interface MediaKitData {
 
 export type MediaKitPublicData = Omit<MediaKitData, 'rates'>;
 
+export interface MediaKitConfigRecord {
+  id: string;
+  key: string;
+  data: Record<string, unknown>;
+  updated_at: string;
+}
+
+const DEFAULT_MEDIA_KIT_CONFIG_RECORDS: MediaKitConfigRecord[] = [
+  {
+    id: 'default-social-metrics',
+    key: 'social_metrics',
+    updated_at: new Date().toISOString(),
+    data: {
+      items: [
+        {
+          platform: 'instagram',
+          account: '@laschubys',
+          metric: '17K',
+          label: 'seguidores',
+          href: 'https://www.instagram.com/laschubys/',
+          engagement: '4-7%',
+        },
+        {
+          platform: 'tiktok',
+          account: '@laschubys.oficial',
+          metric: '14.4K',
+          label: 'seguidores · 609K likes',
+          href: 'https://www.tiktok.com/@laschubys.oficial',
+          engagement: '4-7%',
+        },
+        {
+          platform: 'facebook',
+          account: 'Las Chubys',
+          metric: '2.6K',
+          label: 'seguidores',
+          href: 'https://www.facebook.com/people/Las-Chubys/61589964727281/',
+          engagement: '4-7%',
+        },
+        {
+          platform: 'engagement',
+          account: 'promedio',
+          metric: '4-7%',
+          label: 'engagement orgánico',
+          href: 'https://www.instagram.com/laschubys/',
+        },
+      ],
+    },
+  },
+  {
+    id: 'default-audience',
+    key: 'audience',
+    updated_at: new Date().toISOString(),
+    data: {
+      female: '91%',
+      male: '9%',
+      topCountries: [
+        { country: 'Ecuador', percentage: '60%' },
+        { country: 'Estados Unidos', percentage: '15%' },
+        { country: 'México', percentage: '10%' },
+        { country: 'Colombia', percentage: '8%' },
+        { country: 'Otros', percentage: '7%' },
+      ],
+      topCities: [
+        { city: 'Guayaquil', percentage: '35%' },
+        { city: 'Quito', percentage: '22%' },
+        { city: 'Cuenca', percentage: '8%' },
+      ],
+    },
+  },
+  {
+    id: 'default-content-pillars',
+    key: 'content_pillars',
+    updated_at: new Date().toISOString(),
+    data: {
+      items: ['Reviews honestos', 'Comparativas', 'Tutoriales', 'Lifestyle', 'Unboxing', 'Recomendaciones'],
+    },
+  },
+  {
+    id: 'default-services',
+    key: 'services',
+    updated_at: new Date().toISOString(),
+    data: {
+      items: [
+        {
+          title: 'Publicidad',
+          description: 'Integración natural de productos en contenido orgánico.',
+          deliverables: ['Storytelling de marca', '1 reel integrado', '3 stories de respaldo'],
+        },
+        {
+          title: 'Reseñas',
+          description: 'Opinión real y detallada dirigida a una comunidad de compradores.',
+          deliverables: ['Reel o carrusel', 'Copy honesto', 'Stories con CTA'],
+        },
+        {
+          title: 'Colaboraciones',
+          description: 'Campañas creativas a medida con la esencia de Las Chubys.',
+          deliverables: ['Brief personalizado', 'Pack de contenido', 'Reporte de métricas'],
+        },
+      ],
+    },
+  },
+  {
+    id: 'default-contact',
+    key: 'contact',
+    updated_at: new Date().toISOString(),
+    data: {
+      email: 'hola@laschubys.com',
+    },
+  },
+];
+
 @Injectable()
 export class MediaKitService {
-  constructor(
-    private readonly socialMetrics: SocialMetricsService,
-    private readonly supabase: SupabaseService,
-  ) {}
+  constructor(private readonly supabase: SupabaseService) {}
 
-  private readonly data: MediaKitData = {
+  private readonly staticData: MediaKitData = {
     hero: {
       title: 'Las Chubys · Media Kit',
       subtitle:
@@ -117,7 +224,7 @@ export class MediaKitService {
       },
       ctaWrite: {
         label: 'Escríbenos',
-        href: 'mailto:laschubys.oficial@gmail.com',
+        href: 'mailto:hola@laschubys.com',
       },
     },
     metrics: [
@@ -285,33 +392,214 @@ export class MediaKitService {
       },
     ],
     contact: {
-      email: 'laschubys.oficial@gmail.com',
+      email: 'hola@laschubys.com',
       whatsapp: 'https://wa.me/593960463743',
       whatsappLabel: '+593 96 046 3743',
     },
   };
 
   async getMediaKit(_locale?: string): Promise<MediaKitData> {
-    const metrics = await this.resolveMetrics();
-    return { ...this.data, metrics };
+    return this.buildMediaKitData();
   }
 
   async getPublicData(_locale?: string): Promise<MediaKitPublicData> {
-    const metrics = await this.resolveMetrics();
-    const { rates: _rates, ...publicData } = this.data;
-    return { ...publicData, metrics };
+    const { rates: _rates, ...publicData } = await this.buildMediaKitData();
+    return publicData;
   }
 
-  private async resolveMetrics(): Promise<MediaKitMetric[]> {
-    try {
-      const realMetrics = await this.socialMetrics.getMetricsForMediaKit();
-      if (realMetrics.length > 0) {
-        return realMetrics;
+  async getAdminConfig(): Promise<MediaKitConfigRecord[]> {
+    const { data, error } = await this.supabase.admin
+      .from('media_kit_config')
+      .select('id, key, data, updated_at')
+      .order('key', { ascending: true });
+
+    if (error) {
+      if (error.message?.includes("Could not find the table")) {
+        return DEFAULT_MEDIA_KIT_CONFIG_RECORDS;
       }
-    } catch (err) {
-      console.error('[MediaKitService] Error cargando métricas sociales:', err);
+
+      throw new Error(`No se pudo cargar la configuración del media kit: ${error.message}`);
     }
 
-    return this.data.metrics;
+    return (data || []) as MediaKitConfigRecord[];
+  }
+
+  async updateAdminConfig(key: string, data: Record<string, unknown>): Promise<MediaKitConfigRecord> {
+    const { data: rows, error: upsertError } = await this.supabase.admin
+      .from('media_kit_config')
+      .upsert({ key, data } as never, { onConflict: 'key' })
+      .select('id, key, data, updated_at');
+
+    if (upsertError) {
+      throw new Error(`No se pudo actualizar la configuración: ${upsertError.message}`);
+    }
+
+    const record = ((rows || []) as unknown[])[0] as MediaKitConfigRecord | undefined;
+
+    if (!record) {
+      throw new NotFoundException(`No se pudo guardar la configuración para la clave ${key}`);
+    }
+
+    return record;
+  }
+
+  private async buildMediaKitData(): Promise<MediaKitData> {
+    const overrides = await this.loadConfigMap();
+
+    const metrics = this.parseMetrics(overrides.get('social_metrics'));
+    const audience = this.parseAudience(overrides.get('audience'));
+    const contentPillars = this.parseContentPillars(overrides.get('content_pillars'));
+    const services = this.parseServices(overrides.get('services'));
+    const contact = this.parseContact(overrides.get('contact'));
+
+    return {
+      hero: this.staticData.hero,
+      metrics: metrics.length > 0 ? metrics : this.staticData.metrics,
+      about: this.staticData.about,
+      audience,
+      content: contentPillars.length > 0 ? contentPillars : this.staticData.content,
+      services: services.length > 0 ? services : this.staticData.services,
+      rates: this.staticData.rates,
+      contact,
+    };
+  }
+
+  private async loadConfigMap(): Promise<Map<string, Record<string, unknown>>> {
+    try {
+      const { data, error } = await this.supabase.anon
+        .from('media_kit_config')
+        .select('key, data');
+
+      if (error || !data) {
+        console.error('[MediaKitService] Error cargando media_kit_config:', error);
+        return new Map();
+      }
+
+      return new Map(
+        (data as unknown as { key: string; data: Record<string, unknown> }[]).map((row) => [
+          row.key,
+          row.data || {},
+        ]),
+      );
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      if (errorMessage.includes("Could not find the table")) {
+        return new Map(DEFAULT_MEDIA_KIT_CONFIG_RECORDS.map((row) => [row.key, row.data]));
+      }
+
+      console.error('[MediaKitService] Excepción cargando media_kit_config:', err);
+      return new Map();
+    }
+  }
+
+  private parseMetrics(raw: Record<string, unknown> | undefined): MediaKitMetric[] {
+    const items = raw?.['items'];
+
+    if (!Array.isArray(items)) {
+      return [];
+    }
+
+    return items
+      .filter((item): item is Record<string, string> => typeof item === 'object' && item !== null)
+      .map((item) => ({
+        network: String(item['platform'] || item['network'] || ''),
+        handle: String(item['account'] || item['handle'] || ''),
+        value: String(item['metric'] || item['value'] || ''),
+        label: String(item['label'] || ''),
+        engagement: item['engagement'] ? String(item['engagement']) : undefined,
+        href: item['href'] ? String(item['href']) : undefined,
+      }))
+      .filter((item) => item.network && item.value);
+  }
+
+  private parseAudience(raw: Record<string, unknown> | undefined): MediaKitAudience {
+    const staticAudience = this.staticData.audience;
+    const female = raw?.['female'];
+    const male = raw?.['male'];
+    const topCountries = Array.isArray(raw?.['topCountries']) ? raw['topCountries'] : [];
+    const topCities = Array.isArray(raw?.['topCities']) ? raw['topCities'] : [];
+
+    const demographics: MediaKitDemographic[] = [];
+
+    if (typeof female === 'string' || typeof female === 'number') {
+      demographics.push({ label: 'Femenino', value: String(female), detail: 'Audiencia principal' });
+    }
+
+    if (typeof male === 'string' || typeof male === 'number') {
+      demographics.push({ label: 'Masculino', value: String(male), detail: 'Resto de la audiencia' });
+    }
+
+    for (const country of topCountries) {
+      if (country && typeof country === 'object') {
+        const label = String((country as Record<string, unknown>)['country'] || '');
+        const value = String((country as Record<string, unknown>)['percentage'] || '');
+        if (label && value) {
+          demographics.push({ label, value, detail: 'País' });
+        }
+      }
+    }
+
+    for (const city of topCities) {
+      if (city && typeof city === 'object') {
+        const label = String((city as Record<string, unknown>)['city'] || '');
+        const value = String((city as Record<string, unknown>)['percentage'] || '');
+        if (label && value) {
+          demographics.push({ label, value, detail: 'Ciudad' });
+        }
+      }
+    }
+
+    return {
+      segments: staticAudience.segments,
+      demographics: demographics.length > 0 ? demographics : staticAudience.demographics,
+    };
+  }
+
+  private parseContentPillars(raw: Record<string, unknown> | undefined): MediaKitContentItem[] {
+    const items = raw?.['items'];
+
+    if (!Array.isArray(items)) {
+      return [];
+    }
+
+    return items
+      .filter((item): item is string => typeof item === 'string')
+      .map((title) => ({
+        title,
+        image: '/images/cats/iris2.jpeg',
+        metric: 'Contenido',
+      }));
+  }
+
+  private parseServices(raw: Record<string, unknown> | undefined): MediaKitServiceItem[] {
+    const items = raw?.['items'];
+
+    if (!Array.isArray(items)) {
+      return [];
+    }
+
+    return items
+      .filter((item): item is Record<string, unknown> => typeof item === 'object' && item !== null)
+      .map((item) => ({
+        name: String(item['title'] || item['name'] || ''),
+        description: String(item['description'] || ''),
+        deliverables: Array.isArray(item['deliverables'])
+          ? item['deliverables'].map((d) => String(d))
+          : [],
+      }))
+      .filter((item) => item.name);
+  }
+
+  private parseContact(raw: Record<string, unknown> | undefined): MediaKitContact {
+    const email =
+      typeof raw?.['email'] === 'string' && raw['email']
+        ? raw['email']
+        : this.staticData.contact.email;
+
+    return {
+      email,
+      whatsapp: this.staticData.contact.whatsapp,
+      whatsappLabel: this.staticData.contact.whatsappLabel,
+    };
   }
 }

@@ -8,12 +8,15 @@ import {
   Body,
   NotFoundException,
   BadRequestException,
+  UseGuards,
 } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { SupabaseService } from '../supabase/supabase.service';
+import { AdminGuard } from '../auth/admin.guard';
 import { CreateProductDto, UpdateProductDto } from './dto/product.dto';
 
 @Controller('admin/products')
+@UseGuards(AdminGuard)
 export class AdminProductsController {
   constructor(private readonly supabase: SupabaseService) {}
 

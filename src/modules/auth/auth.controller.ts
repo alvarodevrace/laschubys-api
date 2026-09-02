@@ -1,8 +1,9 @@
-import { Controller, Get, Query, Req, Res } from '@nestjs/common';
+import { Controller, Get, Post, Body, Req, Res } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { Throttle } from '@nestjs/throttler';
 import { AuthSessionService } from './auth-session.service';
 import { CsrfService } from '../../shared/csrf/csrf.service';
+import { LoginDto } from './dto/login.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -27,44 +28,15 @@ export class AuthController {
     return { token };
   }
 
-  @Get('google')
+  @Post('login')
   @Throttle({ auth: { limit: 5, ttl: 60000 } })
-  async google(
+  async login(
     @Req() req: Request,
-    @Res() res: Response,
-    @Query('next') next?: string,
-    @Query('origin') origin?: string,
+    @Res({ passthrough: true }) res: Response,
+    @Body() dto: LoginDto,
   ) {
-    const authUrl = await this.authSessions.getGoogleAuthUrl(req, res, next, origin);
-    return res.redirect(authUrl);
-  }
-
-  @Get('callback')
-  @Throttle({ auth: { limit: 5, ttl: 60000 } })
-  async callback(
-    @Req() req: Request,
-    @Res() res: Response,
-    @Query('code') code?: string,
-    @Query('next') next?: string,
-    @Query('origin') origin?: string,
-  ) {
-    const redirectTarget = this.authSessions.resolveRedirectTarget(origin, next);
-
-    if (!code) {
-      return res.redirect(
-        `${redirectTarget.startsWith('http') ? new URL('/auth/login', redirectTarget).toString() : '/auth/login'}?error=oauth`,
-      );
-    }
-
-    try {
-      await this.authSessions.finishOAuth(req, res, code);
-      return res.redirect(redirectTarget);
-    } catch {
-      const loginUrl = new URL('/auth/login', redirectTarget);
-      loginUrl.searchParams.set('redirect', next && next.startsWith('/') ? next : '/blog');
-      loginUrl.searchParams.set('error', 'oauth');
-      return res.redirect(loginUrl.toString());
-    }
+    const user = await this.authSessions.loginWithPassword(req, res, dto.email, dto.password);
+    return { user };
   }
 
   @Get('logout')
