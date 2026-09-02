@@ -1,7 +1,7 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { createClient, Session, User } from '@supabase/supabase-js';
 import { Request, Response } from 'express';
-import { randomBytes } from 'node:crypto';
+import { createHmac, randomBytes, createHash } from 'node:crypto';
 import type { WebSocketLikeConstructor } from '@supabase/realtime-js';
 import * as ws from 'ws';
 import { env } from '../../shared/config/env';
@@ -15,94 +15,141 @@ export type AuthUserView = {
   role: 'admin' | 'user';
 };
 
+type AdminJwtPayload = {
+  sub: string;
+  email: string;
+  role: 'admin';
+  exp: number;
+};
+
 @Injectable()
 export class AuthSessionService {
   private readonly accessCookieName = 'lc_access_token';
   private readonly refreshCookieName = 'lc_refresh_token';
-  private readonly stateCookieName = 'lc_oauth_state';
-  private readonly stateCookieMaxAge = 1000 * 60 * 10; // 10 minutes
+  private readonly adminCookieName = 'lc_admin_token';
+  private readonly adminTokenMaxAge = 1000 * 60 * 60 * 24 * 30; // 30 days
 
   constructor(private readonly supabase: SupabaseService) {}
 
   async getCurrentUser(req: Request, res?: Response) {
+    const adminUser = this.resolveAdminUser(req);
+    if (adminUser) {
+      return adminUser;
+    }
+
     const session = await this.resolveSession(req, res);
     return session?.user ? this.toAuthUserView(session.user) : null;
   }
 
   async requireUser(req: Request, res?: Response) {
-    const session = await this.resolveSession(req, res);
+    const user = await this.getCurrentUser(req, res);
 
-    if (!session?.user) {
+    if (!user) {
       throw new UnauthorizedException('Se requiere autenticación');
     }
 
-    return session.user;
+    return user;
   }
 
-  async getGoogleAuthUrl(
-    req: Request,
-    res: Response,
-    next: string | undefined,
-    origin: string | undefined,
-  ) {
-    const frontendOrigin = this.normalizeOrigin(origin);
-    const callbackUrl = new URL('/api/auth/callback', frontendOrigin);
-    callbackUrl.searchParams.set('next', this.normalizeNextPath(next));
-    callbackUrl.searchParams.set('origin', frontendOrigin);
-
-    const state = this.generateState();
-    this.writeStateCookie(res, state);
-
-    const client = this.createBrowserAuthClient(req, res);
-    const { data, error } = await client.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: callbackUrl.toString(),
-        queryParams: {
-          access_type: 'offline',
-          prompt: 'consent',
-          state,
-        },
-        skipBrowserRedirect: true,
-      },
-    });
-
-    if (error || !data.url) {
-      throw new UnauthorizedException(error?.message || 'No se pudo iniciar el acceso con Google');
+  async loginWithPassword(_req: Request, res: Response, email: string, password: string) {
+    let normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail.includes('@')) {
+      normalizedEmail = `${normalizedEmail}@laschubys.com`;
     }
 
-    return data.url;
-  }
+    const passwordHash = createHash('sha256').update(password).digest('hex');
 
-  async finishOAuth(req: Request, res: Response, code: string) {
-    const stateFromUrl = Array.isArray(req.query.state) ? req.query.state[0] : req.query.state;
-    const stateFromCookie = this.parseCookies(req.headers.cookie)[this.stateCookieName];
-
-    if (!stateFromUrl || !stateFromCookie || stateFromUrl !== stateFromCookie) {
-      this.clearStateCookie(res);
-      throw new UnauthorizedException('Estado OAuth inválido o ausente');
+    if (normalizedEmail !== env.adminEmail.toLowerCase() || passwordHash !== env.adminPasswordHash) {
+      throw new UnauthorizedException('Credenciales inválidas');
     }
 
-    this.clearStateCookie(res);
+    const token = this.signAdminToken();
+    this.writeAdminCookie(res, token);
 
-    const client = this.createBrowserAuthClient(req, res);
-    const { data, error } = await client.auth.exchangeCodeForSession(code);
-
-    if (error || !data.session || !data.user) {
-      this.clearSessionCookies(res);
-      throw new UnauthorizedException(error?.message || 'No se pudo completar el acceso');
-    }
-
-    this.writeSessionCookies(res, data.session);
-    return this.toAuthUserView(data.user);
+    return this.toAdminUserView();
   }
 
   clearSession(res: Response) {
     this.clearSessionCookies(res);
+    this.clearAdminCookie(res);
   }
 
-  resolveRedirectTarget(origin: string | undefined, next: string | undefined) {
-    return `${this.normalizeOrigin(origin)}${this.normalizeNextPath(next)}`;
+  private resolveAdminUser(req: Request): AuthUserView | null {
+    const token = this.parseCookies(req.headers.cookie)[this.adminCookieName];
+    if (!token) {
+      return null;
+    }
+
+    const payload = this.verifyAdminToken(token);
+    if (!payload) {
+      return null;
+    }
+
+    return this.toAdminUserView();
+  }
+
+  private signAdminToken(): string {
+    const header = { alg: 'HS256', typ: 'JWT' };
+    const nowSeconds = Math.floor(Date.now() / 1000);
+    const payload: AdminJwtPayload = {
+      sub: env.adminUserId,
+      email: env.adminEmail,
+      role: 'admin',
+      exp: nowSeconds + 60 * 60 * 24 * 30,
+    };
+
+    const encodedHeader = this.base64UrlEncode(JSON.stringify(header));
+    const encodedPayload = this.base64UrlEncode(JSON.stringify(payload));
+    const signature = createHmac('sha256', env.adminAuthSecret)
+      .update(`${encodedHeader}.${encodedPayload}`)
+      .digest('base64url');
+
+    return `${encodedHeader}.${encodedPayload}.${signature}`;
+  }
+
+  private verifyAdminToken(token: string): AdminJwtPayload | null {
+    try {
+      const [encodedHeader, encodedPayload, signature] = token.split('.');
+      if (!encodedHeader || !encodedPayload || !signature) {
+        return null;
+      }
+
+      const expectedSignature = createHmac('sha256', env.adminAuthSecret)
+        .update(`${encodedHeader}.${encodedPayload}`)
+        .digest('base64url');
+
+      if (signature !== expectedSignature) {
+        return null;
+      }
+
+      const payload = JSON.parse(this.base64UrlDecode(encodedPayload)) as AdminJwtPayload;
+
+      if (payload.exp * 1000 < Date.now()) {
+        return null;
+      }
+
+      return payload;
+    } catch {
+      return null;
+    }
+  }
+
+  private base64UrlEncode(value: string): string {
+    return Buffer.from(value).toString('base64url');
+  }
+
+  private base64UrlDecode(value: string): string {
+    return Buffer.from(value, 'base64url').toString('utf8');
+  }
+
+  private toAdminUserView(): AuthUserView {
+    return {
+      id: env.adminUserId,
+      email: env.adminEmail,
+      name: 'Admin Las Chubys',
+      avatar: null,
+      role: 'admin',
+    };
   }
 
   private async resolveSession(req: Request, res?: Response) {
@@ -146,12 +193,8 @@ export class AuthSessionService {
     return {
       id: user.id,
       email: user.email || '',
-      name:
-        user.user_metadata?.['full_name'] ||
-        user.user_metadata?.['name'] ||
-        user.email ||
-        'Cat Mom',
-      avatar: user.user_metadata?.['avatar_url'] || null,
+      name: user.user_metadata?.['name'] || user.email || 'Admin',
+      avatar: null,
       role: this.validateRole(profile?.role),
     };
   }
@@ -220,45 +263,23 @@ export class AuthSessionService {
     res.clearCookie(this.refreshCookieName, cookieOptions);
   }
 
-  private generateState(): string {
-    return randomBytes(32).toString('hex');
-  }
-
-  private writeStateCookie(res: Response, state: string): void {
-    res.cookie(this.stateCookieName, state, {
+  private writeAdminCookie(res: Response, token: string) {
+    res.cookie(this.adminCookieName, token, {
       httpOnly: true,
       sameSite: 'lax',
       secure: env.isProduction,
       path: '/',
-      maxAge: this.stateCookieMaxAge,
+      maxAge: this.adminTokenMaxAge,
     });
   }
 
-  private clearStateCookie(res: Response): void {
-    res.clearCookie(this.stateCookieName, {
+  private clearAdminCookie(res: Response) {
+    res.clearCookie(this.adminCookieName, {
       httpOnly: true,
       sameSite: 'lax' as const,
       secure: env.isProduction,
       path: '/',
     });
-  }
-
-  private normalizeOrigin(value: string | undefined) {
-    const normalized = value?.trim().replace(/\/+$/, '');
-
-    if (normalized && env.allowedOrigins.includes(normalized)) {
-      return normalized;
-    }
-
-    return env.allowedOrigins[0]!;
-  }
-
-  private normalizeNextPath(value: string | undefined) {
-    if (!value || !value.startsWith('/') || value.startsWith('//')) {
-      return '/blog';
-    }
-
-    return value;
   }
 
   private validateRole(role: string | null | undefined): 'admin' | 'user' {

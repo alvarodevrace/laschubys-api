@@ -8,11 +8,14 @@ import {
   Body,
   NotFoundException,
   BadRequestException,
+  UseGuards,
 } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
+import { AdminGuard } from '../auth/admin.guard';
 import { CreatePostDto, UpdatePostDto } from './dto/post.dto';
 
 @Controller('admin/posts')
+@UseGuards(AdminGuard)
 export class AdminPostsController {
   constructor(private readonly supabase: SupabaseService) {}
 
