@@ -12,6 +12,7 @@ import { ContentModule } from './modules/content/content.module';
 import { CheckoutModule } from './modules/checkout/checkout.module';
 import { ContactModule } from './modules/contact/contact.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { DonationsModule } from './modules/donations/donations.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { AdminModule } from './modules/admin/admin.module';
       { name: 'medium', ttl: 60000, limit: 100 },
       { name: 'auth', ttl: 60000, limit: 10 },
       { name: 'checkout', ttl: 60000, limit: 5 },
+      { name: 'donations', ttl: 60000, limit: 10 },
     ]),
     SupabaseModule,
     AuthModule,
@@ -32,6 +34,7 @@ import { AdminModule } from './modules/admin/admin.module';
     CheckoutModule,
     ContactModule,
     AdminModule,
+    DonationsModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: SentryGlobalFilter },

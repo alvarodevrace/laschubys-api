@@ -11,7 +11,9 @@ import { CsrfService } from './shared/csrf/csrf.service';
 import type { Request, Response } from 'express';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { cors: false });
+  // rawBody: true makes the exact request body available as `req.rawBody`,
+  // which PayPal's webhook signature verification requires.
+  const app = await NestFactory.create(AppModule, { cors: false, rawBody: true });
 
   // Trust reverse proxy (Cloudflare + Traefik) so req.ip reflects the client IP
   app.getHttpAdapter().getInstance().set('trust proxy', true);
