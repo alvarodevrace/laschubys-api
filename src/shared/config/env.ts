@@ -6,6 +6,15 @@ function required(name: string) {
 
 const nodeEnv = process.env['NODE_ENV'] ?? 'development';
 
+// PayPal: default to sandbox mode. Set PAYPAL_MODE=disabled to keep the in-memory
+// MockGateway active for local dev (no real credentials required).
+type PayPalMode = 'sandbox' | 'live' | 'disabled';
+const paypalMode: PayPalMode = (['sandbox', 'live', 'disabled'].includes(
+  (process.env['PAYPAL_MODE'] ?? 'sandbox').toLowerCase(),
+)
+  ? (process.env['PAYPAL_MODE'] ?? 'sandbox').toLowerCase()
+  : 'sandbox') as PayPalMode;
+
 export const env = {
   nodeEnv,
   isProduction: nodeEnv === 'production',
@@ -21,6 +30,21 @@ export const env = {
   sentryDsn: process.env['SENTRY_DSN'] ?? '',
   n8nWebhookUrl: process.env['N8N_WEBHOOK_URL'] ?? '',
   adminEmail: process.env['ADMIN_EMAIL'] ?? 'adminchuby@laschubys.com',
+  // --- "Invítame un Churu" (Sprint 2): PayPal + notification webhook ---
+  // PAYPAL_MODE: 'sandbox' | 'live' | 'disabled'. Anything other than 'disabled'
+  // requires PAYPAL_CLIENT_ID / PAYPAL_CLIENT_SECRET (and PAYPAL_WEBHOOK_ID for webhooks).
+  paypalMode,
+  paypalBaseUrl:
+    paypalMode === 'live' ? 'https://api-m.paypal.com' : 'https://api-m.sandbox.paypal.com',
+  paypalClientId: process.env['PAYPAL_CLIENT_ID'] ?? '',
+  paypalClientSecret: process.env['PAYPAL_CLIENT_SECRET'] ?? '',
+  paypalWebhookId: process.env['PAYPAL_WEBHOOK_ID'] ?? '',
+  donationsReturnUrl:
+    process.env['DONATIONS_RETURN_URL'] ?? 'https://invitame.laschubys.com/gracias',
+  donationsCancelUrl:
+    process.env['DONATIONS_CANCEL_URL'] ?? 'https://invitame.laschubys.com/',
+  donationsN8nWebhookUrl:
+    process.env['DONATIONS_N8N_WEBHOOK_URL'] ?? 'https://n8n.alvarodevrace.tech/webhook/lch-donation-notify',
   adminPasswordHash:
     process.env['ADMIN_PASSWORD_HASH'] ??
     '8deb4d72b9e5c0fe7ceb45732bfb76d4e7f7f97ac61aba1e08c5dbad944a6494',
