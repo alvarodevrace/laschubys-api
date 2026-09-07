@@ -293,6 +293,48 @@ export type Database = {
         };
         Relationships: [];
       };
+      donations: {
+        Row: {
+          id: string;
+          tier: string;
+          amount_usd: number;
+          currency: string;
+          donor_name: string | null;
+          message: string | null;
+          status: string;
+          gateway: string;
+          gateway_ref: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          tier: string;
+          amount_usd: number;
+          currency?: string;
+          donor_name?: string | null;
+          message?: string | null;
+          status?: string;
+          gateway?: string;
+          gateway_ref?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          tier?: string;
+          amount_usd?: number;
+          currency?: string;
+          donor_name?: string | null;
+          message?: string | null;
+          status?: string;
+          gateway?: string;
+          gateway_ref?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
