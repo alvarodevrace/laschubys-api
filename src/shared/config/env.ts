@@ -9,11 +9,11 @@ const nodeEnv = process.env['NODE_ENV'] ?? 'development';
 // PayPal: default to sandbox mode. Set PAYPAL_MODE=disabled to keep the in-memory
 // MockGateway active for local dev (no real credentials required).
 type PayPalMode = 'sandbox' | 'live' | 'disabled';
-const paypalMode: PayPalMode = (['sandbox', 'live', 'disabled'].includes(
-  (process.env['PAYPAL_MODE'] ?? 'sandbox').toLowerCase(),
-)
-  ? (process.env['PAYPAL_MODE'] ?? 'sandbox').toLowerCase()
-  : 'sandbox') as PayPalMode;
+const paypalMode: PayPalMode = (
+  ['sandbox', 'live', 'disabled'].includes((process.env['PAYPAL_MODE'] ?? 'sandbox').toLowerCase())
+    ? (process.env['PAYPAL_MODE'] ?? 'sandbox').toLowerCase()
+    : 'sandbox'
+) as PayPalMode;
 
 export const env = {
   nodeEnv,
@@ -41,15 +41,14 @@ export const env = {
   paypalWebhookId: process.env['PAYPAL_WEBHOOK_ID'] ?? '',
   donationsReturnUrl:
     process.env['DONATIONS_RETURN_URL'] ?? 'https://invitame.laschubys.com/gracias',
-  donationsCancelUrl:
-    process.env['DONATIONS_CANCEL_URL'] ?? 'https://invitame.laschubys.com/',
+  donationsCancelUrl: process.env['DONATIONS_CANCEL_URL'] ?? 'https://invitame.laschubys.com/',
   donationsN8nWebhookUrl:
-    process.env['DONATIONS_N8N_WEBHOOK_URL'] ?? 'https://n8n.alvarodevrace.tech/webhook/lch-donation-notify',
-  adminPasswordHash:
-    process.env['ADMIN_PASSWORD_HASH'] ??
-    '8deb4d72b9e5c0fe7ceb45732bfb76d4e7f7f97ac61aba1e08c5dbad944a6494',
-  adminAuthSecret:
-    process.env['ADMIN_AUTH_SECRET'] ??
-    'a3424812423d5d14ddc1419e241d97457629acb53fad695ef99235d4720083c7',
+    process.env['DONATIONS_N8N_WEBHOOK_URL'] ??
+    'https://n8n.alvarodevrace.tech/webhook/lch-donation-notify',
+  // Admin auth (required): values live in Dokploy env + Bitwarden
+  // (`bitwarden:global/admin-auth-secrets`). Never hardcode fallbacks here —
+  // this repo is public.
+  adminPasswordHash: required('ADMIN_PASSWORD_HASH'),
+  adminAuthSecret: required('ADMIN_AUTH_SECRET'),
   adminUserId: process.env['ADMIN_USER_ID'] ?? '00000000-0000-0000-0000-000000000001',
 };
