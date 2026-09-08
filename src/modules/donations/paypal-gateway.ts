@@ -44,10 +44,7 @@ export class PayPalGateway implements PaymentGateway {
     this.config = config;
   }
 
-  async createOrder(
-    tier: DonationTier,
-    options?: { customId?: string },
-  ): Promise<PaymentOrder> {
+  async createOrder(tier: DonationTier, options?: { customId?: string }): Promise<PaymentOrder> {
     this.assertConfigured();
 
     const token = await this.getAccessToken();
@@ -97,11 +94,14 @@ export class PayPalGateway implements PaymentGateway {
     this.assertConfigured();
 
     const token = await this.getAccessToken();
-    const response = await this.request(`/v2/checkout/orders/${encodeURIComponent(orderId)}/capture`, {
-      method: 'POST',
-      token,
-      body: {},
-    });
+    const response = await this.request(
+      `/v2/checkout/orders/${encodeURIComponent(orderId)}/capture`,
+      {
+        method: 'POST',
+        token,
+        body: {},
+      },
+    );
 
     const data = (await response.json()) as {
       status?: string;
@@ -113,7 +113,9 @@ export class PayPalGateway implements PaymentGateway {
     };
 
     if (data.status !== 'COMPLETED') {
-      throw new BadRequestException(`PayPal capture not completed (status: ${data.status ?? 'unknown'})`);
+      throw new BadRequestException(
+        `PayPal capture not completed (status: ${data.status ?? 'unknown'})`,
+      );
     }
 
     const captureId = data.purchase_units?.[0]?.payments?.captures?.[0]?.id ?? data.id;
@@ -161,11 +163,11 @@ export class PayPalGateway implements PaymentGateway {
       return this.token.token;
     }
 
-    const credentials = Buffer.from(
-      `${this.config.clientId}:${this.config.clientSecret}`,
-    ).toString('base64');
+    const credentials = Buffer.from(`${this.config.clientId}:${this.config.clientSecret}`).toString(
+      'base64',
+    );
 
-    const response = await this.request('/v2/oauth2/token', {
+    const response = await this.request('/v1/oauth2/token', {
       method: 'POST',
       headers: {
         Authorization: `Basic ${credentials}`,

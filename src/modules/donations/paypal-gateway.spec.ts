@@ -36,7 +36,7 @@ describe('PayPalGateway', () => {
   describe('access token', () => {
     it('fetches a token once and caches it for subsequent calls', async () => {
       fetchMock.mockImplementation(async (url: string) => {
-        if (url.includes('/v2/oauth2/token')) {
+        if (url.includes('/v1/oauth2/token')) {
           return jsonResponse(200, { access_token: 'abc', expires_in: 3600 });
         }
         if (url.includes('/v2/checkout/orders')) {
@@ -49,7 +49,7 @@ describe('PayPalGateway', () => {
       await gateway.createOrder('croqueta', { customId: 'donation-2' });
 
       const tokenCalls = fetchMock.mock.calls.filter(([url]) =>
-        String(url).includes('/v2/oauth2/token'),
+        String(url).includes('/v1/oauth2/token'),
       );
       expect(tokenCalls).toHaveLength(1);
     });
@@ -58,7 +58,7 @@ describe('PayPalGateway', () => {
   describe('createOrder', () => {
     it('returns the order id, tier, amount and approval url', async () => {
       fetchMock.mockImplementation(async (url: string) => {
-        if (url.includes('/v2/oauth2/token')) {
+        if (url.includes('/v1/oauth2/token')) {
           return jsonResponse(200, { access_token: 'abc', expires_in: 3600 });
         }
         if (url.includes('/v2/checkout/orders')) {
@@ -96,7 +96,7 @@ describe('PayPalGateway', () => {
   describe('capture', () => {
     it('returns the capture id and donation id for a COMPLETED capture', async () => {
       fetchMock.mockImplementation(async (url: string) => {
-        if (url.includes('/v2/oauth2/token')) {
+        if (url.includes('/v1/oauth2/token')) {
           return jsonResponse(200, { access_token: 'abc', expires_in: 3600 });
         }
         if (url.includes('/capture')) {
@@ -115,12 +115,16 @@ describe('PayPalGateway', () => {
       });
 
       const result = await gateway.capture('ORDER-1');
-      expect(result).toEqual({ status: 'COMPLETED', gatewayRef: 'CAP-123', donationId: 'donation-1' });
+      expect(result).toEqual({
+        status: 'COMPLETED',
+        gatewayRef: 'CAP-123',
+        donationId: 'donation-1',
+      });
     });
 
     it('throws BadRequestException when the capture is not COMPLETED', async () => {
       fetchMock.mockImplementation(async (url: string) => {
-        if (url.includes('/v2/oauth2/token')) {
+        if (url.includes('/v1/oauth2/token')) {
           return jsonResponse(200, { access_token: 'abc', expires_in: 3600 });
         }
         if (url.includes('/capture')) {
@@ -151,7 +155,7 @@ describe('PayPalGateway', () => {
 
     it('returns true when verification_status is SUCCESS', async () => {
       fetchMock.mockImplementation(async (url: string) => {
-        if (url.includes('/v2/oauth2/token')) {
+        if (url.includes('/v1/oauth2/token')) {
           return jsonResponse(200, { access_token: 'abc', expires_in: 3600 });
         }
         if (url.includes('/verify-webhook-signature')) {
@@ -165,7 +169,7 @@ describe('PayPalGateway', () => {
 
     it('returns false when verification_status is FAILURE', async () => {
       fetchMock.mockImplementation(async (url: string) => {
-        if (url.includes('/v2/oauth2/token')) {
+        if (url.includes('/v1/oauth2/token')) {
           return jsonResponse(200, { access_token: 'abc', expires_in: 3600 });
         }
         if (url.includes('/verify-webhook-signature')) {
@@ -181,9 +185,7 @@ describe('PayPalGateway', () => {
   describe('configuration', () => {
     it('fails with a clear error when credentials are missing and mode is not disabled', async () => {
       const unconfigured = new PayPalGateway({ ...CONFIG, clientId: '', clientSecret: '' });
-      await expect(unconfigured.createOrder('churu')).rejects.toThrow(
-        /PAYPAL_CLIENT_ID/,
-      );
+      await expect(unconfigured.createOrder('churu')).rejects.toThrow(/PAYPAL_CLIENT_ID/);
     });
 
     it('throws when webhook id is missing', async () => {
@@ -192,9 +194,7 @@ describe('PayPalGateway', () => {
         headers: { 'paypal-transmission-id': 't1' },
         rawBody: '{}',
       };
-      await expect(noWebhook.verifyWebhookSignature(input)).rejects.toThrow(
-        /PAYPAL_WEBHOOK_ID/,
-      );
+      await expect(noWebhook.verifyWebhookSignature(input)).rejects.toThrow(/PAYPAL_WEBHOOK_ID/);
     });
   });
 });
