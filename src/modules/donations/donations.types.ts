@@ -40,6 +40,7 @@ export interface Donation {
   status: DonationStatus;
   gateway: DonationGateway;
   gatewayRef: string | null;
+  gatewayOrderId: string | null;
   createdAt: string;
 }
 

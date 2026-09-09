@@ -41,6 +41,7 @@ describe('DonationsService', () => {
       status,
       gateway: 'mock',
       gatewayRef: null,
+      gatewayOrderId: null,
       createdAt: new Date().toISOString(),
     };
     return repo.create(donation);
@@ -81,7 +82,11 @@ describe('DonationsService', () => {
         donationId: 'donation-1',
       });
 
-      const result = await service.capture({ orderId: 'ORDER-1', donorName: 'Ana', message: 'hola' });
+      const result = await service.capture({
+        orderId: 'ORDER-1',
+        donorName: 'Ana',
+        message: 'hola',
+      });
 
       expect(result).toEqual({ status: 'COMPLETED', donationId: 'donation-1' });
 
@@ -103,7 +108,11 @@ describe('DonationsService', () => {
         rawBody: '{}',
         body: {
           event_type: 'PAYMENT.CAPTURE.COMPLETED',
-          resource: { id: 'CAP-1', custom_id: 'donation-1', amount: { value: '10', currency_code: 'USD' } },
+          resource: {
+            id: 'CAP-1',
+            custom_id: 'donation-1',
+            amount: { value: '10', currency_code: 'USD' },
+          },
         },
       });
 

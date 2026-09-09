@@ -1,10 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
 import type { Donation, DonationStatus } from './donations.types';
-import type {
-  CreateDonationInput,
-  DonationsRepository,
-} from './donations-repository.interface';
+import type { CreateDonationInput, DonationsRepository } from './donations-repository.interface';
 
 // PostgREST row shape for laschubys.donations (see shared/types/supabase.ts).
 type DonationRow = {
@@ -17,6 +14,7 @@ type DonationRow = {
   status: string;
   gateway: string;
   gateway_ref: string | null;
+  gateway_order_id: string | null;
   created_at: string;
 };
 
@@ -31,6 +29,7 @@ function toRow(input: CreateDonationInput) {
     status: input.status,
     gateway: input.gateway,
     gateway_ref: input.gatewayRef,
+    gateway_order_id: input.gatewayOrderId ?? null,
   };
 }
 
@@ -45,6 +44,7 @@ function fromRow(row: DonationRow): Donation {
     status: row.status as Donation['status'],
     gateway: row.gateway as Donation['gateway'],
     gatewayRef: row.gateway_ref,
+    gatewayOrderId: row.gateway_order_id,
     createdAt: row.created_at,
   };
 }
@@ -109,6 +109,19 @@ export class SupabaseDonationsRepository implements DonationsRepository {
 
     if (error) {
       throw new Error(`Failed to find donation by gateway ref: ${error.message}`);
+    }
+    return data ? fromRow(data as DonationRow) : null;
+  }
+
+  async findByGatewayOrderId(gatewayOrderId: string): Promise<Donation | null> {
+    const { data, error } = await this.supabase.admin
+      .from('donations')
+      .select('*')
+      .eq('gateway_order_id', gatewayOrderId)
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(`Failed to find donation by gateway order id: ${error.message}`);
     }
     return data ? fromRow(data as DonationRow) : null;
   }
