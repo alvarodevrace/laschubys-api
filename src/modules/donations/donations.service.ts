@@ -31,14 +31,14 @@ export class DonationsService {
     @Inject(DONATIONS_REPOSITORY) private readonly repository: DonationsRepository,
   ) {}
 
-  async createOrder(
-    dto: CreateOrderDto,
-  ): Promise<{ orderId: string; approvalUrl?: string }> {
+  async createOrder(dto: CreateOrderDto): Promise<{ orderId: string; approvalUrl?: string }> {
     // Create the pending row FIRST so we can embed its id as the PayPal custom_id.
     // This lets a capture/webhook resolve the donation even when it arrives by
     // PayPal order id alone.
     const donationId = randomUUID();
     const amountUsd = TIER_AMOUNTS[dto.tier];
+
+    const order = await this.gateway.createOrder(dto.tier, { customId: donationId });
 
     await this.repository.create({
       id: donationId,
@@ -48,24 +48,25 @@ export class DonationsService {
       status: 'pending',
       gateway: this.gateway.name,
       gatewayRef: null,
+      gatewayOrderId: order.gatewayOrderId ?? order.orderId,
       donorName: null,
       message: null,
     });
 
-    const order = await this.gateway.createOrder(dto.tier, { customId: donationId });
-
     return { orderId: order.orderId, approvalUrl: order.approvalUrl };
   }
 
-  async capture(
-    dto: CaptureDto,
-  ): Promise<{ status: 'COMPLETED'; donationId: string }> {
+  async capture(dto: CaptureDto): Promise<{ status: 'COMPLETED'; donationId: string }> {
     const result = await this.gateway.capture(dto.orderId);
 
-    // Real PayPal echoes the donation id via custom_id; the mock returns the
-    // order id directly. Fall back to the order id for safety.
-    const donationId = result.donationId ?? dto.orderId;
-    const donation = await this.repository.findById(donationId);
+    // Try custom_id first (PayPal may echo it), then fall back to gateway order id lookup.
+    let donation: Donation | null = null;
+    if (result.donationId) {
+      donation = await this.repository.findById(result.donationId);
+    }
+    if (!donation) {
+      donation = await this.repository.findByGatewayOrderId(dto.orderId);
+    }
     if (!donation) {
       throw new NotFoundException('Order not found');
     }

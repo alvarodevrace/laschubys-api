@@ -19,7 +19,8 @@ function createSupabaseMock(terminalResult: Record<string, unknown>) {
   ['upsert', 'insert', 'select', 'eq', 'order', 'range', 'onConflict', 'ignore', 'update'].forEach(
     chain,
   );
-  builder.then = (resolve: (v: unknown) => unknown) => Promise.resolve(terminalResult).then(resolve);
+  builder.then = (resolve: (v: unknown) => unknown) =>
+    Promise.resolve(terminalResult).then(resolve);
 
   const admin = { from: jest.fn(() => builder) };
   const supabase = { admin } as unknown as SupabaseService;
@@ -36,6 +37,7 @@ const ROW = {
   status: 'approved',
   gateway: 'paypal',
   gateway_ref: 'CAP-123',
+  gateway_order_id: null,
   created_at: '2026-09-07T00:00:00.000Z',
 };
 
