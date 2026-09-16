@@ -2,6 +2,7 @@ import {
   Controller,
   Post,
   UploadedFile,
+  UseGuards,
   UseInterceptors,
   BadRequestException,
   PayloadTooLargeException,
@@ -9,12 +10,14 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { SupabaseService } from '../supabase/supabase.service';
+import { AdminGuard } from '../auth/admin.guard';
 
 const BUCKET = 'las-chubys-media';
 const MAX_SIZE_MB = 5;
 const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif'];
 
 @Controller('admin/upload')
+@UseGuards(AdminGuard)
 export class AdminUploadController {
   constructor(private readonly supabase: SupabaseService) {}
 
