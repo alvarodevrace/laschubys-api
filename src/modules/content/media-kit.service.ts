@@ -80,6 +80,10 @@ export interface MediaKitContact {
   email: string;
   whatsapp: string;
   whatsappLabel: string;
+  /** Campos del nuevo contacto (diseño PDF) — opcionales. */
+  website?: string;
+  phone?: string;
+  location?: string;
 }
 
 export interface MediaKitData {
@@ -91,9 +95,62 @@ export interface MediaKitData {
   services: MediaKitServiceItem[];
   rates: MediaKitRate[];
   contact: MediaKitContact;
+  /** Secciones nuevas (diseño PDF media kit) — opcionales para compatibilidad. */
+  cover?: MediaKitPdfCover;
+  socialMetrics?: MediaKitPdfNetwork[];
+  audienceOverview?: MediaKitPdfAudience;
+  collabFormats?: MediaKitPdfCollabFormats;
+  houseFormats?: MediaKitPdfHouseFormats;
 }
 
 export type MediaKitPublicData = Omit<MediaKitData, 'rates'>;
+
+// ---------------------------------------------------------------------------
+// Contrato del rediseño media kit (versión PDF, datos dinámicos desde la base)
+// ---------------------------------------------------------------------------
+
+export interface MediaKitPdfCover {
+  title: string;
+  subtitle: string;
+  photos: Array<{ name: string; image: string }>;
+}
+
+export interface MediaKitPdfNetwork {
+  name: string;
+  handle: string;
+  followers: string;
+  engagement: string;
+  reachMonthly: string;
+  viewsMonthly: string;
+  href?: string;
+}
+
+export interface MediaKitPdfAudience {
+  countriesCount: string;
+  countriesLabel: string;
+  femalePercent: string;
+  femaleLabel: string;
+  ageRange: string;
+  ageLabel: string;
+  countries: string[];
+}
+
+export interface MediaKitPdfCollabItem {
+  title: string;
+  description: string;
+}
+
+export interface MediaKitPdfCollabFormats {
+  title: string;
+  intro: string;
+  items: MediaKitPdfCollabItem[];
+}
+
+export interface MediaKitPdfHouseFormats {
+  title: string;
+  growthNote: string;
+  items: Array<{ title: string }>;
+}
 
 export interface MediaKitConfigRecord {
   id: string;
@@ -169,7 +226,14 @@ const DEFAULT_MEDIA_KIT_CONFIG_RECORDS: MediaKitConfigRecord[] = [
     key: 'content_pillars',
     updated_at: new Date().toISOString(),
     data: {
-      items: ['Reviews honestos', 'Comparativas', 'Tutoriales', 'Lifestyle', 'Unboxing', 'Recomendaciones'],
+      items: [
+        'Reviews honestos',
+        'Comparativas',
+        'Tutoriales',
+        'Lifestyle',
+        'Unboxing',
+        'Recomendaciones',
+      ],
     },
   },
   {
@@ -201,7 +265,120 @@ const DEFAULT_MEDIA_KIT_CONFIG_RECORDS: MediaKitConfigRecord[] = [
     key: 'contact',
     updated_at: new Date().toISOString(),
     data: {
-      email: 'hola@laschubys.com',
+      website: 'www.laschubys.com',
+      phone: '+593 99 213 1011',
+      email: 'laschubys.oficial@gmail.com',
+      location: 'Ecuador para audiencia LATAM',
+    },
+  },
+  {
+    id: 'default-cover',
+    key: 'cover',
+    updated_at: new Date().toISOString(),
+    data: {
+      title: 'Reality show felino',
+      subtitle:
+        'Protagonizado por Iris Lourdes y Rubí Lucrecia, dos gatitas de personalidades opuestas que convierten lo cotidiano en drama épico.',
+      photos: [
+        { name: 'Rubí', image: '/images/cats/rubi.jpeg' },
+        { name: 'Iris', image: '/images/cats/iris.jpeg' },
+      ],
+    },
+  },
+  {
+    id: 'default-metrics',
+    key: 'metrics',
+    updated_at: new Date().toISOString(),
+    data: {
+      asOf: 'Julio 2026',
+      networks: [
+        {
+          name: 'Instagram',
+          handle: '@laschubys',
+          followers: '31.3k',
+          engagement: '21%',
+          reachMonthly: '963K',
+          viewsMonthly: '1.8M',
+          href: 'https://www.instagram.com/laschubys/',
+        },
+        {
+          name: 'Facebook',
+          handle: 'Las Chubys',
+          followers: '3.8K',
+          engagement: '9.9%',
+          reachMonthly: '203.8K',
+          viewsMonthly: '338.5K',
+          href: 'https://www.facebook.com/people/Las-Chubys/61589964727281/',
+        },
+        {
+          name: 'TikTok',
+          handle: '@laschubys.oficial',
+          followers: '23K',
+          engagement: '12.9%',
+          reachMonthly: '35.5K',
+          viewsMonthly: '1.1M',
+          href: 'https://www.tiktok.com/@laschubys.oficial',
+        },
+      ],
+    },
+  },
+  {
+    id: 'default-collab-formats',
+    key: 'collab_formats',
+    updated_at: new Date().toISOString(),
+    data: {
+      title: 'Formatos de colaboración',
+      intro:
+        'Cada colaboración es única y los valores varían según el alcance, derechos y formatos incluidos. Cuéntanos qué necesita tu marca y encontramos la mejor forma de integrarlo al universo Chuby.',
+      items: [
+        {
+          title: 'Gifting (Regalo)',
+          description:
+            'La marca envía su producto para ser usado por Iris Lourdes o Rubí Lucrecia en contenido orgánico dentro del universo Chuby.',
+        },
+        {
+          title: 'Historias mencionando marca',
+          description:
+            'Pack mínimo de 3 historias con mención, etiqueta y/o link directo a la marca.',
+        },
+        {
+          title: 'Reel/TikTok Patrocinado',
+          description:
+            'Video dedicado, protagonizado por las gatas con integración natural del producto dentro de una de las series de La Casa Chuby.',
+        },
+        {
+          title: 'UGC',
+          description:
+            'Contenido grabado por Las Chubys para uso exclusivo de la marca en sus propias redes, web o anuncios pagados (sin publicación en la cuenta de Las Chubys).',
+        },
+        {
+          title: 'Embajador mensual',
+          description:
+            'Campaña completa mensual que incluye reels, historias y presencia continua de la marca dentro del universo Chuby.',
+        },
+        {
+          title: 'Afiliados',
+          description:
+            'La marca asigna un código o link exclusivo de Las Chubys. Se genera comisión por cada venta referida.',
+        },
+      ],
+    },
+  },
+  {
+    id: 'default-house-formats',
+    key: 'house_formats',
+    updated_at: new Date().toISOString(),
+    data: {
+      title: 'Formatos de La Casa Chuby',
+      growthNote: '100% crecimiento orgánico',
+      items: [
+        { title: 'Método MIAU' },
+        { title: 'Noticias de última hora' },
+        { title: 'Expedientes Chuby' },
+        { title: 'Recursos felinos' },
+        { title: 'Carrusel' },
+        { title: 'Historias' },
+      ],
     },
   },
 ];
@@ -414,7 +591,7 @@ export class MediaKitService {
       .order('key', { ascending: true });
 
     if (error) {
-      if (error.message?.includes("Could not find the table")) {
+      if (error.message?.includes('Could not find the table')) {
         return DEFAULT_MEDIA_KIT_CONFIG_RECORDS;
       }
 
@@ -424,7 +601,10 @@ export class MediaKitService {
     return (data || []) as MediaKitConfigRecord[];
   }
 
-  async updateAdminConfig(key: string, data: Record<string, unknown>): Promise<MediaKitConfigRecord> {
+  async updateAdminConfig(
+    key: string,
+    data: Record<string, unknown>,
+  ): Promise<MediaKitConfigRecord> {
     const { data: rows, error: upsertError } = await this.supabase.admin
       .from('media_kit_config')
       .upsert({ key, data } as never, { onConflict: 'key' })
@@ -452,6 +632,12 @@ export class MediaKitService {
     const services = this.parseServices(overrides.get('services'));
     const contact = this.parseContact(overrides.get('contact'));
 
+    const cover = this.parseCover(overrides.get('cover'));
+    const socialMetrics = this.parseSocialMetrics(overrides.get('metrics'));
+    const audienceOverview = this.parseAudienceOverview(overrides.get('audience'));
+    const collabFormats = this.parseCollabFormats(overrides.get('collab_formats'));
+    const houseFormats = this.parseHouseFormats(overrides.get('house_formats'));
+
     return {
       hero: this.staticData.hero,
       metrics: metrics.length > 0 ? metrics : this.staticData.metrics,
@@ -461,14 +647,17 @@ export class MediaKitService {
       services: services.length > 0 ? services : this.staticData.services,
       rates: this.staticData.rates,
       contact,
+      cover,
+      socialMetrics,
+      audienceOverview,
+      collabFormats,
+      houseFormats,
     };
   }
 
   private async loadConfigMap(): Promise<Map<string, Record<string, unknown>>> {
     try {
-      const { data, error } = await this.supabase.anon
-        .from('media_kit_config')
-        .select('key, data');
+      const { data, error } = await this.supabase.anon.from('media_kit_config').select('key, data');
 
       if (error || !data) {
         console.error('[MediaKitService] Error cargando media_kit_config:', error);
@@ -483,7 +672,7 @@ export class MediaKitService {
       );
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err);
-      if (errorMessage.includes("Could not find the table")) {
+      if (errorMessage.includes('Could not find the table')) {
         return new Map(DEFAULT_MEDIA_KIT_CONFIG_RECORDS.map((row) => [row.key, row.data]));
       }
 
@@ -522,11 +711,19 @@ export class MediaKitService {
     const demographics: MediaKitDemographic[] = [];
 
     if (typeof female === 'string' || typeof female === 'number') {
-      demographics.push({ label: 'Femenino', value: String(female), detail: 'Audiencia principal' });
+      demographics.push({
+        label: 'Femenino',
+        value: String(female),
+        detail: 'Audiencia principal',
+      });
     }
 
     if (typeof male === 'string' || typeof male === 'number') {
-      demographics.push({ label: 'Masculino', value: String(male), detail: 'Resto de la audiencia' });
+      demographics.push({
+        label: 'Masculino',
+        value: String(male),
+        detail: 'Resto de la audiencia',
+      });
     }
 
     for (const country of topCountries) {
@@ -600,6 +797,91 @@ export class MediaKitService {
       email,
       whatsapp: this.staticData.contact.whatsapp,
       whatsappLabel: this.staticData.contact.whatsappLabel,
+      website: typeof raw?.['website'] === 'string' ? raw['website'] : undefined,
+      phone: typeof raw?.['phone'] === 'string' ? raw['phone'] : undefined,
+      location: typeof raw?.['location'] === 'string' ? raw['location'] : undefined,
+    };
+  }
+
+  private parseCover(raw: Record<string, unknown> | undefined): MediaKitPdfCover {
+    const title = typeof raw?.['title'] === 'string' ? raw['title'] : '';
+    const subtitle = typeof raw?.['subtitle'] === 'string' ? raw['subtitle'] : '';
+    const photos = Array.isArray(raw?.['photos'])
+      ? raw['photos']
+          .filter((p): p is Record<string, unknown> => typeof p === 'object' && p !== null)
+          .map((p) => ({
+            name: String(p['name'] || ''),
+            image: String(p['image'] || ''),
+          }))
+          .filter((p) => p.name && p.image)
+      : [];
+
+    return { title, subtitle, photos };
+  }
+
+  private parseSocialMetrics(raw: Record<string, unknown> | undefined): MediaKitPdfNetwork[] {
+    const networks = Array.isArray(raw?.['networks']) ? raw['networks'] : [];
+
+    return networks
+      .filter((n): n is Record<string, unknown> => typeof n === 'object' && n !== null)
+      .map((n) => ({
+        name: String(n['name'] || ''),
+        handle: String(n['handle'] || ''),
+        followers: String(n['followers'] || ''),
+        engagement: String(n['engagement'] || ''),
+        reachMonthly: String(n['reachMonthly'] || ''),
+        viewsMonthly: String(n['viewsMonthly'] || ''),
+        href: n['href'] ? String(n['href']) : undefined,
+      }))
+      .filter((n) => n.name);
+  }
+
+  private parseAudienceOverview(raw: Record<string, unknown> | undefined): MediaKitPdfAudience {
+    const countries = Array.isArray(raw?.['countries'])
+      ? raw['countries'].filter((c): c is string => typeof c === 'string')
+      : [];
+
+    return {
+      countriesCount: String(raw?.['countriesCount'] || ''),
+      countriesLabel: String(raw?.['countriesLabel'] || ''),
+      femalePercent: String(raw?.['femalePercent'] || ''),
+      femaleLabel: String(raw?.['femaleLabel'] || ''),
+      ageRange: String(raw?.['ageRange'] || ''),
+      ageLabel: String(raw?.['ageLabel'] || ''),
+      countries,
+    };
+  }
+
+  private parseCollabFormats(raw: Record<string, unknown> | undefined): MediaKitPdfCollabFormats {
+    const items = Array.isArray(raw?.['items'])
+      ? raw['items']
+          .filter((i): i is Record<string, unknown> => typeof i === 'object' && i !== null)
+          .map((i) => ({
+            title: String(i['title'] || ''),
+            description: String(i['description'] || ''),
+          }))
+          .filter((i) => i.title)
+      : [];
+
+    return {
+      title: String(raw?.['title'] || ''),
+      intro: String(raw?.['intro'] || ''),
+      items,
+    };
+  }
+
+  private parseHouseFormats(raw: Record<string, unknown> | undefined): MediaKitPdfHouseFormats {
+    const items = Array.isArray(raw?.['items'])
+      ? raw['items']
+          .filter((i): i is Record<string, unknown> => typeof i === 'object' && i !== null)
+          .map((i) => ({ title: String(i['title'] || '') }))
+          .filter((i) => i.title)
+      : [];
+
+    return {
+      title: String(raw?.['title'] || ''),
+      growthNote: String(raw?.['growthNote'] || ''),
+      items,
     };
   }
 }

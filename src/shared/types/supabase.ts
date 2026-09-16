@@ -304,6 +304,7 @@ export type Database = {
           status: string;
           gateway: string;
           gateway_ref: string | null;
+          gateway_order_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -317,6 +318,7 @@ export type Database = {
           status?: string;
           gateway?: string;
           gateway_ref?: string | null;
+          gateway_order_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -330,6 +332,7 @@ export type Database = {
           status?: string;
           gateway?: string;
           gateway_ref?: string | null;
+          gateway_order_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };

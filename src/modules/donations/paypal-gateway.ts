@@ -87,6 +87,7 @@ export class PayPalGateway implements PaymentGateway {
       currency: 'USD',
       status: 'pending',
       approvalUrl,
+      gatewayOrderId: orderId,
     };
   }
 

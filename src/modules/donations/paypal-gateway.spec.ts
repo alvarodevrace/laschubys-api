@@ -80,6 +80,7 @@ describe('PayPalGateway', () => {
         currency: 'USD',
         status: 'pending',
         approvalUrl: 'https://sandbox.paypal.com/approve/ORDER-1',
+        gatewayOrderId: 'ORDER-1',
       });
 
       // The custom_id must be embedded in the order request.

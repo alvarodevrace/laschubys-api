@@ -9,6 +9,8 @@ export interface PaymentOrder {
   status: 'pending';
   /** PayPal approval redirect URL (only for real PayPal). */
   approvalUrl?: string;
+  /** The gateway-side order id (PayPal order id). Used to look up the donation when custom_id is not echoed back. */
+  gatewayOrderId?: string;
 }
 
 export interface PaymentCaptureResult {

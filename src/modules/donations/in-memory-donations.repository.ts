@@ -1,10 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import type { Donation, DonationStatus, DonationTier } from './donations.types';
-import type {
-  CreateDonationInput,
-  DonationsRepository,
-} from './donations-repository.interface';
+import type { CreateDonationInput, DonationsRepository } from './donations-repository.interface';
 
 interface SeedEntry {
   donorName: string;
@@ -16,20 +13,48 @@ interface SeedEntry {
 
 // Seed data to populate the public wall while the Supabase table does not exist yet.
 const SEED_APPROVED: SeedEntry[] = [
-  { donorName: 'María', message: 'Para las michis, con amor', daysAgo: 12, amountUsd: 10, tier: 'churu' },
+  {
+    donorName: 'María',
+    message: 'Para las michis, con amor',
+    daysAgo: 12,
+    amountUsd: 10,
+    tier: 'churu',
+  },
   { donorName: 'Carlos', message: 'Churu para todos!', daysAgo: 9, amountUsd: 5, tier: 'croqueta' },
-  { donorName: 'Lucía', message: 'Salmón premium para ellas', daysAgo: 6, amountUsd: 15, tier: 'salmon' },
-  { donorName: 'Andrés', message: 'Un abrazo a las chubys', daysAgo: 4, amountUsd: 5, tier: 'croqueta' },
-  { donorName: 'Valentina', message: 'Las mejores michis del mundo', daysAgo: 2, amountUsd: 10, tier: 'churu' },
+  {
+    donorName: 'Lucía',
+    message: 'Salmón premium para ellas',
+    daysAgo: 6,
+    amountUsd: 15,
+    tier: 'salmon',
+  },
+  {
+    donorName: 'Andrés',
+    message: 'Un abrazo a las chubys',
+    daysAgo: 4,
+    amountUsd: 5,
+    tier: 'croqueta',
+  },
+  {
+    donorName: 'Valentina',
+    message: 'Las mejores michis del mundo',
+    daysAgo: 2,
+    amountUsd: 10,
+    tier: 'churu',
+  },
   { donorName: 'José', message: 'Michi power', daysAgo: 1, amountUsd: 5, tier: 'croqueta' },
-  { donorName: 'Fernanda', message: 'Colaboración para ellas', daysAgo: 0, amountUsd: 15, tier: 'salmon' },
+  {
+    donorName: 'Fernanda',
+    message: 'Colaboración para ellas',
+    daysAgo: 0,
+    amountUsd: 15,
+    tier: 'salmon',
+  },
 ];
 
 function seedApprovedDonations(): Donation[] {
   return SEED_APPROVED.map((entry) => {
-    const createdAt = new Date(
-      Date.now() - entry.daysAgo * 24 * 60 * 60 * 1000,
-    ).toISOString();
+    const createdAt = new Date(Date.now() - entry.daysAgo * 24 * 60 * 60 * 1000).toISOString();
 
     return {
       id: randomUUID(),
@@ -41,6 +66,7 @@ function seedApprovedDonations(): Donation[] {
       status: 'approved',
       gateway: 'mock',
       gatewayRef: `mock_seed_${randomUUID()}`,
+      gatewayOrderId: null,
       createdAt,
     };
   });
@@ -70,7 +96,11 @@ export class InMemoryDonationsRepository implements DonationsRepository {
       }
     }
 
-    const donation: Donation = { ...input, createdAt: new Date().toISOString() };
+    const donation: Donation = {
+      ...input,
+      gatewayOrderId: input.gatewayOrderId ?? null,
+      createdAt: new Date().toISOString(),
+    };
     this.store.set(donation.id, donation);
     return donation;
   }
@@ -81,6 +111,15 @@ export class InMemoryDonationsRepository implements DonationsRepository {
 
   async findByGatewayRef(gatewayRef: string): Promise<Donation | null> {
     return this.findByGatewayRefSync(gatewayRef);
+  }
+
+  async findByGatewayOrderId(gatewayOrderId: string): Promise<Donation | null> {
+    for (const donation of this.store.values()) {
+      if (donation.gatewayOrderId === gatewayOrderId) {
+        return donation;
+      }
+    }
+    return null;
   }
 
   async markPaid(
